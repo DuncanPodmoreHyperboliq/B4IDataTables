@@ -607,3 +607,60 @@ class TransactionStatuses {
   }
 }
 
+class IFS {
+  final int ifsId;
+  final DateTime? flightDateTime;
+  final String? flightAircraftRegistration;
+  final String? flightNumber;
+  final int? flightOriginId;
+  final int? flightDestinationId;
+  final double? upliftVolume;
+  final DateTime? createdAt;
+  final String? invoiceNo;
+
+  IFS({
+    required this.ifsId,
+    this.flightDateTime,
+    this.flightAircraftRegistration,
+    this.flightNumber,
+    this.flightOriginId,
+    this.flightDestinationId,
+    this.upliftVolume,
+    this.createdAt,
+    this.invoiceNo,
+  });
+
+  /// Factory constructor to create an instance from a JSON object
+  factory IFS.fromJson(Map<String, dynamic> json) {
+    return IFS(
+      ifsId: json['ifs_id'],
+      flightDateTime: json['flight_date_time'] != null
+          ? DateTime.parse(json['flight_date_time'])
+          : null,
+      flightAircraftRegistration: json['flight_aircraft_registration'],
+      flightNumber: json['flight_number'],
+      flightOriginId: json['flight_origin_id'],
+      flightDestinationId: json['flight_destination_id'],
+      upliftVolume: json['uplift_volume'],
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
+      invoiceNo: json['invoice_no'],
+    );
+  }
+
+  /// Method to convert an instance to a JSON object
+  Map<String, dynamic> toJson() {
+    return {
+      'ifs_id': ifsId,
+      'flight_date_time': flightDateTime?.toIso8601String(),
+      'flight_aircraft_registration': flightAircraftRegistration,
+      'flight_number': flightNumber,
+      'flight_origin_id': flightOriginId,
+      'flight_destination_id': flightDestinationId,
+      'uplift_volume': upliftVolume,
+      'created_at': createdAt?.toIso8601String(),
+      'invoice_no': invoiceNo,
+    };
+  }
+}

@@ -322,15 +322,6 @@ class _AirportsTableState extends State<AirportsTable> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Airports Table'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: fetchAirports,
-          ),
-        ],
-      ),
       body: _loading
           ? Center(child: CircularProgressIndicator())
           : Column(
@@ -363,10 +354,6 @@ class _AirportsTableState extends State<AirportsTable> {
           ),
           _buildPaginationControls(totalPages),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
-        onPressed: () {},
       ),
     );
   }

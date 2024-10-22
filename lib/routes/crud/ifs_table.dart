@@ -6,70 +6,77 @@ class SupabaseConfig {
   static SupabaseClient get client => Supabase.instance.client;
 }
 
-class SupplierTransactions {
-  final int locationId;
-  final String flightNumber;
-  final String transactionInvoiceNumber;
-  final double supplierInvoiceQty;
-  final int supplierId;
-  final DateTime supplierInvoiceDate;
-  final double transactionAmount;
-  final int transactionId;
+class IFS {
+  final int ifsId;
+  final DateTime? flightDateTime;
+  final String? flightAircraftRegistration;
+  final String? flightNumber;
+  final int? flightOriginId;
+  final int? flightDestinationId;
+  final double? upliftVolume;
+  final DateTime? createdAt;
+  final String? invoiceNo;
 
-  SupplierTransactions({
-    required this.locationId,
-    required this.flightNumber,
-    required this.transactionInvoiceNumber,
-    required this.supplierInvoiceQty,
-    required this.supplierId,
-    required this.supplierInvoiceDate,
-    required this.transactionAmount,
-    required this.transactionId,
+  IFS({
+    required this.ifsId,
+    this.flightDateTime,
+    this.flightAircraftRegistration,
+    this.flightNumber,
+    this.flightOriginId,
+    this.flightDestinationId,
+    this.upliftVolume,
+    this.createdAt,
+    this.invoiceNo,
   });
 
-  factory SupplierTransactions.fromJson(Map<String, dynamic> json) {
-    return SupplierTransactions(
-      locationId: json['location_id'],
+  factory IFS.fromJson(Map<String, dynamic> json) {
+    return IFS(
+      ifsId: json['ifs_id'],
+      flightDateTime: json['flight_date_time'] != null
+          ? DateTime.parse(json['flight_date_time'])
+          : null,
+      flightAircraftRegistration: json['flight_aircraft_registration'],
       flightNumber: json['flight_number'],
-      transactionInvoiceNumber: json['transaction_invoice_number'],
-      supplierInvoiceQty: (json['supplier_invoice_qty'] ?? 0).toDouble(),
-      supplierId: json['supplier_id'],
-      supplierInvoiceDate: DateTime.parse(json['supplier_invoice_date']),
-      transactionAmount: (json['transaction_amount'] ?? 0).toDouble(),
-      transactionId: json['transaction_id'],
+      flightOriginId: json['flight_origin_id'],
+      flightDestinationId: json['flight_destination_id'],
+      upliftVolume: (json['uplift_volume'] ?? 0).toDouble(),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
+      invoiceNo: json['invoice_no'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'location_id': locationId,
+      'ifs_id': ifsId,
+      'flight_date_time': flightDateTime?.toIso8601String(),
+      'flight_aircraft_registration': flightAircraftRegistration,
       'flight_number': flightNumber,
-      'transaction_invoice_number': transactionInvoiceNumber,
-      'supplier_invoice_qty': supplierInvoiceQty,
-      'supplier_id': supplierId,
-      'supplier_invoice_date': supplierInvoiceDate.toIso8601String(),
-      'transaction_amount': transactionAmount,
-      'transaction_id': transactionId,
+      'flight_origin_id': flightOriginId,
+      'flight_destination_id': flightDestinationId,
+      'uplift_volume': upliftVolume,
+      'created_at': createdAt?.toIso8601String(),
+      'invoice_no': invoiceNo,
     };
   }
 }
 
-class SupplierTransactionsTable extends StatefulWidget {
+class IFSTable extends StatefulWidget {
   final double width;
   final double height;
 
-  const SupplierTransactionsTable({
+  const IFSTable({
     Key? key,
     required this.width,
     required this.height,
   }) : super(key: key);
 
   @override
-  _SupplierTransactionsTableState createState() =>
-      _SupplierTransactionsTableState();
+  _IFSTableState createState() => _IFSTableState();
 }
 
-class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
+class _IFSTableState extends State<IFSTable> {
   List<PlutoColumn> columns = [];
   List<PlutoRow> rows = [];
   late PlutoGridStateManager _stateManager;
@@ -83,21 +90,26 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
   void initState() {
     super.initState();
     _initializeColumns();
-    fetchSupplierTransactions();
+    fetchIFSRecords();
   }
 
   void _initializeColumns() {
     columns = [
       PlutoColumn(
-        title: 'Transaction ID',
-        field: 'transaction_id',
+        title: 'IFS ID',
+        field: 'ifs_id',
         type: PlutoColumnType.number(),
         enableEditingMode: false,
       ),
       PlutoColumn(
-        title: 'Location ID',
-        field: 'location_id',
-        type: PlutoColumnType.number(),
+        title: 'Flight Date/Time',
+        field: 'flight_date_time',
+        type: PlutoColumnType.date(),
+      ),
+      PlutoColumn(
+        title: 'Aircraft Registration',
+        field: 'flight_aircraft_registration',
+        type: PlutoColumnType.text(),
       ),
       PlutoColumn(
         title: 'Flight Number',
@@ -105,29 +117,29 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
-        title: 'Invoice Number',
-        field: 'transaction_invoice_number',
-        type: PlutoColumnType.text(),
-      ),
-      PlutoColumn(
-        title: 'Invoice Qty',
-        field: 'supplier_invoice_qty',
+        title: 'Origin ID',
+        field: 'flight_origin_id',
         type: PlutoColumnType.number(),
       ),
       PlutoColumn(
-        title: 'Supplier ID',
-        field: 'supplier_id',
+        title: 'Destination ID',
+        field: 'flight_destination_id',
         type: PlutoColumnType.number(),
       ),
       PlutoColumn(
-        title: 'Invoice Date',
-        field: 'supplier_invoice_date',
+        title: 'Uplift Volume',
+        field: 'uplift_volume',
+        type: PlutoColumnType.number(),
+      ),
+      PlutoColumn(
+        title: 'Created At',
+        field: 'created_at',
         type: PlutoColumnType.date(),
       ),
       PlutoColumn(
-        title: 'Transaction Amount',
-        field: 'transaction_amount',
-        type: PlutoColumnType.number(),
+        title: 'Invoice No',
+        field: 'invoice_no',
+        type: PlutoColumnType.text(),
       ),
       PlutoColumn(
         title: 'Actions',
@@ -143,11 +155,11 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
     }
   }
 
-  Future<void> fetchSupplierTransactions({Map<String, String>? filters}) async {
+  Future<void> fetchIFSRecords({Map<String, String>? filters}) async {
     try {
       setState(() => _loading = true);
 
-      var query = SupabaseConfig.client.from('supplier_transactions').select(
+      var query = SupabaseConfig.client.from('ifs').select(
         '*',
         const FetchOptions(count: CountOption.exact),
       );
@@ -172,22 +184,22 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
 
         // Convert fetched data to PlutoRows
         final newRows = data.map<PlutoRow>((item) {
-          final transaction = SupplierTransactions.fromJson(item);
+          final ifsRecord = IFS.fromJson(item);
 
           return PlutoRow(
             cells: {
-              'transaction_id': PlutoCell(value: transaction.transactionId),
-              'location_id': PlutoCell(value: transaction.locationId),
-              'flight_number': PlutoCell(value: transaction.flightNumber),
-              'transaction_invoice_number':
-              PlutoCell(value: transaction.transactionInvoiceNumber),
-              'supplier_invoice_qty':
-              PlutoCell(value: transaction.supplierInvoiceQty),
-              'supplier_id': PlutoCell(value: transaction.supplierId),
-              'supplier_invoice_date':
-              PlutoCell(value: transaction.supplierInvoiceDate),
-              'transaction_amount':
-              PlutoCell(value: transaction.transactionAmount),
+              'ifs_id': PlutoCell(value: ifsRecord.ifsId),
+              'flight_date_time': PlutoCell(value: ifsRecord.flightDateTime),
+              'flight_aircraft_registration':
+              PlutoCell(value: ifsRecord.flightAircraftRegistration ?? ''),
+              'flight_number': PlutoCell(value: ifsRecord.flightNumber ?? ''),
+              'flight_origin_id':
+              PlutoCell(value: ifsRecord.flightOriginId ?? 0),
+              'flight_destination_id':
+              PlutoCell(value: ifsRecord.flightDestinationId ?? 0),
+              'uplift_volume': PlutoCell(value: ifsRecord.upliftVolume ?? 0),
+              'created_at': PlutoCell(value: ifsRecord.createdAt),
+              'invoice_no': PlutoCell(value: ifsRecord.invoiceNo ?? ''),
               'actions': PlutoCell(value: ''),
             },
           );
@@ -205,7 +217,7 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
         });
       }
     } catch (e) {
-      print('Error fetching supplier transactions: $e');
+      print('Error fetching IFS records: $e');
     } finally {
       setState(() => _loading = false);
     }
@@ -238,44 +250,37 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
         filters[column.field] = filter.filterValue;
       }
     }
-    fetchSupplierTransactions(
-        filters: filters); // Fetch data with applied filters
+    fetchIFSRecords(filters: filters); // Fetch data with applied filters
   }
 
-  Future<void> _editTransaction(int transactionId) async {
-    print('Edit transaction with ID: $transactionId');
+  Future<void> _editIFSRecord(int ifsId) async {
+    print('Edit IFS record with ID: $ifsId');
     // Implement edit functionality
   }
 
-  Future<void> _deleteTransaction(int transactionId) async {
-    await SupabaseConfig.client
-        .from('supplier_transactions')
-        .delete()
-        .eq('transaction_id', transactionId);
-    fetchSupplierTransactions();
+  Future<void> _deleteIFSRecord(int ifsId) async {
+    await SupabaseConfig.client.from('ifs').delete().eq('ifs_id', ifsId);
+    fetchIFSRecords();
   }
 
   void _onPageChanged(int newPage) {
     setState(() {
       _currentPage = newPage;
-      fetchSupplierTransactions();
+      fetchIFSRecords();
     });
   }
 
   // Fetch filtered data from Supabase
-  Future<void> _fetchFilteredSupplierTransactions(
-      Map<String, String> filters) async {
+  Future<void> _fetchFilteredIFSRecords(Map<String, String> filters) async {
     setState(() => _loading = true);
 
     try {
       // Build the query with filters
-      var query =
-      SupabaseConfig.client.from('supplier_transactions').select('*');
+      var query = SupabaseConfig.client.from('ifs').select('*');
 
       // Apply filters dynamically
       filters.forEach((field, value) {
-        query =
-            query.ilike(field, '%$value%'); // Apply filters to the correct fields
+        query = query.ilike(field, '%$value%');
       });
 
       // Fetch data with pagination
@@ -291,22 +296,22 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
 
         // Convert fetched data to PlutoRows
         final newRows = data.map<PlutoRow>((item) {
-          final transaction = SupplierTransactions.fromJson(item);
+          final ifsRecord = IFS.fromJson(item);
 
           return PlutoRow(
             cells: {
-              'transaction_id': PlutoCell(value: transaction.transactionId),
-              'location_id': PlutoCell(value: transaction.locationId),
-              'flight_number': PlutoCell(value: transaction.flightNumber),
-              'transaction_invoice_number':
-              PlutoCell(value: transaction.transactionInvoiceNumber),
-              'supplier_invoice_qty':
-              PlutoCell(value: transaction.supplierInvoiceQty),
-              'supplier_id': PlutoCell(value: transaction.supplierId),
-              'supplier_invoice_date':
-              PlutoCell(value: transaction.supplierInvoiceDate),
-              'transaction_amount':
-              PlutoCell(value: transaction.transactionAmount),
+              'ifs_id': PlutoCell(value: ifsRecord.ifsId),
+              'flight_date_time': PlutoCell(value: ifsRecord.flightDateTime),
+              'flight_aircraft_registration':
+              PlutoCell(value: ifsRecord.flightAircraftRegistration ?? ''),
+              'flight_number': PlutoCell(value: ifsRecord.flightNumber ?? ''),
+              'flight_origin_id':
+              PlutoCell(value: ifsRecord.flightOriginId ?? 0),
+              'flight_destination_id':
+              PlutoCell(value: ifsRecord.flightDestinationId ?? 0),
+              'uplift_volume': PlutoCell(value: ifsRecord.upliftVolume ?? 0),
+              'created_at': PlutoCell(value: ifsRecord.createdAt),
+              'invoice_no': PlutoCell(value: ifsRecord.invoiceNo ?? ''),
               'actions': PlutoCell(value: ''),
             },
           );
@@ -321,7 +326,7 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
         print('No data found.');
       }
     } catch (e) {
-      print('Error fetching supplier transactions: $e');
+      print('Error fetching IFS records: $e');
     } finally {
       setState(() => _loading = false);
     }
@@ -356,7 +361,7 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
                   // Listen for filter changes and trigger a data fetch
                   _stateManager.addListener(() {
                     final filters = _extractFilters();
-                    _fetchFilteredSupplierTransactions(
+                    _fetchFilteredIFSRecords(
                         filters); // Fetch data with filters
                   });
                 },

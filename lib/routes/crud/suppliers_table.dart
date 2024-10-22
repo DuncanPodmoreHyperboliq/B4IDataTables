@@ -6,70 +6,53 @@ class SupabaseConfig {
   static SupabaseClient get client => Supabase.instance.client;
 }
 
-class SupplierTransactions {
-  final int locationId;
-  final String flightNumber;
-  final String transactionInvoiceNumber;
-  final double supplierInvoiceQty;
+class Suppliers {
+  final String supplierName;
+  final String supplierInvoiceName;
+  final String supplierUniqueId;
   final int supplierId;
-  final DateTime supplierInvoiceDate;
-  final double transactionAmount;
-  final int transactionId;
 
-  SupplierTransactions({
-    required this.locationId,
-    required this.flightNumber,
-    required this.transactionInvoiceNumber,
-    required this.supplierInvoiceQty,
+  Suppliers({
+    required this.supplierName,
+    required this.supplierInvoiceName,
+    required this.supplierUniqueId,
     required this.supplierId,
-    required this.supplierInvoiceDate,
-    required this.transactionAmount,
-    required this.transactionId,
   });
 
-  factory SupplierTransactions.fromJson(Map<String, dynamic> json) {
-    return SupplierTransactions(
-      locationId: json['location_id'],
-      flightNumber: json['flight_number'],
-      transactionInvoiceNumber: json['transaction_invoice_number'],
-      supplierInvoiceQty: (json['supplier_invoice_qty'] ?? 0).toDouble(),
-      supplierId: json['supplier_id'],
-      supplierInvoiceDate: DateTime.parse(json['supplier_invoice_date']),
-      transactionAmount: (json['transaction_amount'] ?? 0).toDouble(),
-      transactionId: json['transaction_id'],
+  factory Suppliers.fromJson(Map<String, dynamic> json) {
+    return Suppliers(
+      supplierName: json['supplier_name'] ?? '',
+      supplierInvoiceName: json['supplier_invoice_name'] ?? '',
+      supplierUniqueId: json['supplier_unique_id'] ?? '',
+      supplierId: json['supplier_id'] ?? 0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'location_id': locationId,
-      'flight_number': flightNumber,
-      'transaction_invoice_number': transactionInvoiceNumber,
-      'supplier_invoice_qty': supplierInvoiceQty,
+      'supplier_name': supplierName,
+      'supplier_invoice_name': supplierInvoiceName,
+      'supplier_unique_id': supplierUniqueId,
       'supplier_id': supplierId,
-      'supplier_invoice_date': supplierInvoiceDate.toIso8601String(),
-      'transaction_amount': transactionAmount,
-      'transaction_id': transactionId,
     };
   }
 }
 
-class SupplierTransactionsTable extends StatefulWidget {
+class SuppliersTable extends StatefulWidget {
   final double width;
   final double height;
 
-  const SupplierTransactionsTable({
+  const SuppliersTable({
     Key? key,
     required this.width,
     required this.height,
   }) : super(key: key);
 
   @override
-  _SupplierTransactionsTableState createState() =>
-      _SupplierTransactionsTableState();
+  _SuppliersTableState createState() => _SuppliersTableState();
 }
 
-class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
+class _SuppliersTableState extends State<SuppliersTable> {
   List<PlutoColumn> columns = [];
   List<PlutoRow> rows = [];
   late PlutoGridStateManager _stateManager;
@@ -83,51 +66,31 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
   void initState() {
     super.initState();
     _initializeColumns();
-    fetchSupplierTransactions();
+    fetchSuppliers();
   }
 
   void _initializeColumns() {
     columns = [
       PlutoColumn(
-        title: 'Transaction ID',
-        field: 'transaction_id',
+        title: 'Supplier ID',
+        field: 'supplier_id',
         type: PlutoColumnType.number(),
         enableEditingMode: false,
       ),
       PlutoColumn(
-        title: 'Location ID',
-        field: 'location_id',
-        type: PlutoColumnType.number(),
-      ),
-      PlutoColumn(
-        title: 'Flight Number',
-        field: 'flight_number',
+        title: 'Supplier Name',
+        field: 'supplier_name',
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
-        title: 'Invoice Number',
-        field: 'transaction_invoice_number',
+        title: 'Invoice Name',
+        field: 'supplier_invoice_name',
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
-        title: 'Invoice Qty',
-        field: 'supplier_invoice_qty',
-        type: PlutoColumnType.number(),
-      ),
-      PlutoColumn(
-        title: 'Supplier ID',
-        field: 'supplier_id',
-        type: PlutoColumnType.number(),
-      ),
-      PlutoColumn(
-        title: 'Invoice Date',
-        field: 'supplier_invoice_date',
-        type: PlutoColumnType.date(),
-      ),
-      PlutoColumn(
-        title: 'Transaction Amount',
-        field: 'transaction_amount',
-        type: PlutoColumnType.number(),
+        title: 'Unique ID',
+        field: 'supplier_unique_id',
+        type: PlutoColumnType.text(),
       ),
       PlutoColumn(
         title: 'Actions',
@@ -143,11 +106,11 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
     }
   }
 
-  Future<void> fetchSupplierTransactions({Map<String, String>? filters}) async {
+  Future<void> fetchSuppliers({Map<String, String>? filters}) async {
     try {
       setState(() => _loading = true);
 
-      var query = SupabaseConfig.client.from('supplier_transactions').select(
+      var query = SupabaseConfig.client.from('suppliers').select(
         '*',
         const FetchOptions(count: CountOption.exact),
       );
@@ -172,22 +135,15 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
 
         // Convert fetched data to PlutoRows
         final newRows = data.map<PlutoRow>((item) {
-          final transaction = SupplierTransactions.fromJson(item);
+          final supplier = Suppliers.fromJson(item);
 
           return PlutoRow(
             cells: {
-              'transaction_id': PlutoCell(value: transaction.transactionId),
-              'location_id': PlutoCell(value: transaction.locationId),
-              'flight_number': PlutoCell(value: transaction.flightNumber),
-              'transaction_invoice_number':
-              PlutoCell(value: transaction.transactionInvoiceNumber),
-              'supplier_invoice_qty':
-              PlutoCell(value: transaction.supplierInvoiceQty),
-              'supplier_id': PlutoCell(value: transaction.supplierId),
-              'supplier_invoice_date':
-              PlutoCell(value: transaction.supplierInvoiceDate),
-              'transaction_amount':
-              PlutoCell(value: transaction.transactionAmount),
+              'supplier_id': PlutoCell(value: supplier.supplierId),
+              'supplier_name': PlutoCell(value: supplier.supplierName),
+              'supplier_invoice_name':
+              PlutoCell(value: supplier.supplierInvoiceName),
+              'supplier_unique_id': PlutoCell(value: supplier.supplierUniqueId),
               'actions': PlutoCell(value: ''),
             },
           );
@@ -205,7 +161,7 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
         });
       }
     } catch (e) {
-      print('Error fetching supplier transactions: $e');
+      print('Error fetching suppliers: $e');
     } finally {
       setState(() => _loading = false);
     }
@@ -238,44 +194,40 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
         filters[column.field] = filter.filterValue;
       }
     }
-    fetchSupplierTransactions(
-        filters: filters); // Fetch data with applied filters
+    fetchSuppliers(filters: filters); // Fetch data with applied filters
   }
 
-  Future<void> _editTransaction(int transactionId) async {
-    print('Edit transaction with ID: $transactionId');
+  Future<void> _editSupplier(int supplierId) async {
+    print('Edit supplier with ID: $supplierId');
     // Implement edit functionality
   }
 
-  Future<void> _deleteTransaction(int transactionId) async {
+  Future<void> _deleteSupplier(int supplierId) async {
     await SupabaseConfig.client
-        .from('supplier_transactions')
+        .from('suppliers')
         .delete()
-        .eq('transaction_id', transactionId);
-    fetchSupplierTransactions();
+        .eq('supplier_id', supplierId);
+    fetchSuppliers();
   }
 
   void _onPageChanged(int newPage) {
     setState(() {
       _currentPage = newPage;
-      fetchSupplierTransactions();
+      fetchSuppliers();
     });
   }
 
   // Fetch filtered data from Supabase
-  Future<void> _fetchFilteredSupplierTransactions(
-      Map<String, String> filters) async {
+  Future<void> _fetchFilteredSuppliers(Map<String, String> filters) async {
     setState(() => _loading = true);
 
     try {
       // Build the query with filters
-      var query =
-      SupabaseConfig.client.from('supplier_transactions').select('*');
+      var query = SupabaseConfig.client.from('suppliers').select('*');
 
       // Apply filters dynamically
       filters.forEach((field, value) {
-        query =
-            query.ilike(field, '%$value%'); // Apply filters to the correct fields
+        query = query.ilike(field, '%$value%');
       });
 
       // Fetch data with pagination
@@ -291,22 +243,15 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
 
         // Convert fetched data to PlutoRows
         final newRows = data.map<PlutoRow>((item) {
-          final transaction = SupplierTransactions.fromJson(item);
+          final supplier = Suppliers.fromJson(item);
 
           return PlutoRow(
             cells: {
-              'transaction_id': PlutoCell(value: transaction.transactionId),
-              'location_id': PlutoCell(value: transaction.locationId),
-              'flight_number': PlutoCell(value: transaction.flightNumber),
-              'transaction_invoice_number':
-              PlutoCell(value: transaction.transactionInvoiceNumber),
-              'supplier_invoice_qty':
-              PlutoCell(value: transaction.supplierInvoiceQty),
-              'supplier_id': PlutoCell(value: transaction.supplierId),
-              'supplier_invoice_date':
-              PlutoCell(value: transaction.supplierInvoiceDate),
-              'transaction_amount':
-              PlutoCell(value: transaction.transactionAmount),
+              'supplier_id': PlutoCell(value: supplier.supplierId),
+              'supplier_name': PlutoCell(value: supplier.supplierName),
+              'supplier_invoice_name':
+              PlutoCell(value: supplier.supplierInvoiceName),
+              'supplier_unique_id': PlutoCell(value: supplier.supplierUniqueId),
               'actions': PlutoCell(value: ''),
             },
           );
@@ -321,7 +266,7 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
         print('No data found.');
       }
     } catch (e) {
-      print('Error fetching supplier transactions: $e');
+      print('Error fetching suppliers: $e');
     } finally {
       setState(() => _loading = false);
     }
@@ -330,14 +275,6 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
   @override
   Widget build(BuildContext context) {
     int totalPages = (_totalRecords / _pageSize).ceil();
-
-    TextEditingController _searchController = TextEditingController();
-
-    @override
-    void dispose() {
-      _searchController.dispose();
-      super.dispose();
-    }
 
     return Scaffold(
       body: _loading
@@ -356,7 +293,7 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
                   // Listen for filter changes and trigger a data fetch
                   _stateManager.addListener(() {
                     final filters = _extractFilters();
-                    _fetchFilteredSupplierTransactions(
+                    _fetchFilteredSuppliers(
                         filters); // Fetch data with filters
                   });
                 },
