@@ -1,17 +1,69 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:pluto_grid_plus/pluto_grid_plus.dart';
-import 'package:b4i_frontend/data/supabase_client.dart';
-import 'package:b4i_frontend/data/models.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class CrudTablePage extends StatefulWidget {
-  @override
-  _CrudTablePageState createState() => _CrudTablePageState();
+class SupabaseConfig {
+  static SupabaseClient get client => Supabase.instance.client;
 }
 
-class _CrudTablePageState extends State<CrudTablePage> {
+class Airports {
+  final String airportIcao;
+  final String airportName;
+  final int? locationId; // Allow locationId to be nullable
+  final int airportId;
+  final String airportIata;
+  final String? locationName; // Add nullable location name for the join
+
+  Airports({
+    required this.airportIcao,
+    required this.airportName,
+    this.locationId, // Nullable field
+    required this.airportId,
+    required this.airportIata,
+    this.locationName, // Nullable field for location name
+  });
+
+  factory Airports.fromJson(Map<String, dynamic> json) {
+    return Airports(
+      airportIcao: json['airport_icao'] ?? '', // Provide a default value
+      airportName: json['airport_name'] ?? '', // Provide a default value
+      locationId:
+      json['location_id'] != null ? json['location_id'] as int : null,
+      airportId: json['airport_id'] ?? 0, // Provide a default value
+      airportIata: json['airport_iata'] ?? '', // Provide a default value
+      locationName: json['locations']
+      ?['location_name'], // Handle nested null values
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'airport_icao': airportIcao,
+      'airport_name': airportName,
+      'location_id': locationId,
+      'airport_id': airportId,
+      'airport_iata': airportIata,
+      'location_name': locationName,
+    };
+  }
+}
+
+class AirportsTable extends StatefulWidget {
+  @override
+  _AirportsTableState createState() => _AirportsTableState();
+  final double width;
+  final double height;
+
+  const AirportsTable({
+    Key? key,
+    required this.width,
+    required this.height,
+  }) : super(key: key);
+
+}
+
+class _AirportsTableState extends State<AirportsTable> {
+
   List<PlutoColumn> columns = [];
   List<PlutoRow> rows = [];
   late PlutoGridStateManager _stateManager;
@@ -89,8 +141,9 @@ class _CrudTablePageState extends State<CrudTablePage> {
       setState(() => _loading = true);
 
       var query = SupabaseConfig.client.from('airports').select(
-            'airport_id, airport_icao, airport_iata, airport_name, locations(location_name, location_id)',
-          );
+        'airport_id, airport_icao, airport_iata, airport_name, locations(location_name, location_id)',
+        const FetchOptions(count: CountOption.exact),
+      );
 
       // Apply filters dynamically
       if (filters != null && filters.isNotEmpty) {
@@ -100,13 +153,15 @@ class _CrudTablePageState extends State<CrudTablePage> {
       }
 
       // Fetch data with pagination
-      final dataResponse = await query.range(
+      final response = await query
+          .range(
         (_currentPage - 1) * _pageSize,
         (_currentPage * _pageSize) - 1,
-      );
+      )
+          .execute();
 
-      if (dataResponse != null && dataResponse.isNotEmpty) {
-        final List<dynamic> data = dataResponse;
+      if (response.data != null && response.data.isNotEmpty) {
+        final List<dynamic> data = response.data;
 
         // Convert fetched data to PlutoRows
         final newRows = data.map<PlutoRow>((item) {
@@ -125,21 +180,16 @@ class _CrudTablePageState extends State<CrudTablePage> {
           );
         }).toList();
 
-        // try {
-        //   // Update rows in the state manager safely
-        //   _stateManager.removeAllRows(); // Clear old rows safely
-        //   _stateManager.appendRows(newRows); // Add new rows
-        // } catch (e) {
-        //   print('here 2');
-        //   print(e);
-        // }
-
-        // Ensure the grid rebuilds correctly
         setState(() {
-          rows = newRows; // Keep track of rows for reference
+          rows = newRows;
+          _totalRecords = response.count ?? 0;
         });
       } else {
         print('No data found.');
+        setState(() {
+          rows = [];
+          _totalRecords = 0;
+        });
       }
     } catch (e) {
       print('Error fetching airports: $e');
@@ -215,7 +265,7 @@ class _CrudTablePageState extends State<CrudTablePage> {
       // Fetch the filtered data
       final response = await query;
 
-      if (response != null && response.isNotEmpty) {
+      if (response != null) {
         final List<dynamic> data = response;
 
         setState(() {
@@ -237,7 +287,12 @@ class _CrudTablePageState extends State<CrudTablePage> {
                 },
               );
             }).toList();
+            print('new rows');
             print(newRows);
+            // _stateManager.refRows.clear(); // Clear current rows
+            // _stateManager.removeRows(_stateManager.refRows.toList());
+            _stateManager.removeAllRows();
+
             _stateManager.refRows.addAll(newRows);
           } catch (e) {
             print('here 1');
@@ -258,6 +313,14 @@ class _CrudTablePageState extends State<CrudTablePage> {
   Widget build(BuildContext context) {
     int totalPages = (_totalRecords / _pageSize).ceil();
 
+    TextEditingController _searchController = TextEditingController();
+
+    @override
+    void dispose() {
+      _searchController.dispose();
+      super.dispose();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Airports Table'),
@@ -271,37 +334,36 @@ class _CrudTablePageState extends State<CrudTablePage> {
       body: _loading
           ? Center(child: CircularProgressIndicator())
           : Column(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: PlutoGrid(
-                      columns: columns,
-                      rows: rows,
-                      onLoaded: (PlutoGridOnLoadedEvent event) {
-                        _stateManager = event.stateManager;
-                        print('null check');
-                        print(_stateManager == null);
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: PlutoGrid(
+                columns: columns,
+                rows: rows,
+                onLoaded: (PlutoGridOnLoadedEvent event) {
+                  _stateManager = event.stateManager;
+                  print('null check');
+                  print(_stateManager == null);
 
-                        // Listen for filter changes and trigger a data fetch
-                        _stateManager.addListener(() {
-                          if (_stateManager == null) return;
-                          final filters = _extractFilters();
-                          _fetchFilteredAirports(
-                              filters); // Fetch data with filters
-                        });
-                      },
-                      configuration: const PlutoGridConfiguration(
-                        columnSize: PlutoGridColumnSizeConfig(
-                          autoSizeMode: PlutoAutoSizeMode.equal,
-                        ),
-                      ),
-                    ),
+                  // Listen for filter changes and trigger a data fetch
+                  _stateManager.addListener(() {
+                    final filters = _extractFilters();
+                    _fetchFilteredAirports(
+                        filters); // Fetch data with filters
+                  });
+                },
+                configuration: const PlutoGridConfiguration(
+                  columnSize: PlutoGridColumnSizeConfig(
+                    autoSizeMode: PlutoAutoSizeMode.equal,
                   ),
                 ),
-                _buildPaginationControls(totalPages),
-              ],
+              ),
             ),
+          ),
+          _buildPaginationControls(totalPages),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
         onPressed: () {},

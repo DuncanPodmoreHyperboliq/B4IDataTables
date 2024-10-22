@@ -1,5 +1,6 @@
+import 'package:b4i_frontend/routes/crud/transactions_table.dart';
 import 'package:flutter/material.dart';
-import 'package:b4i_frontend/routes/crud/crud_table_page.dart';
+import 'package:b4i_frontend/routes/crud/airports_table.dart';
 
 class DashboardPage extends StatefulWidget {
   @override
@@ -9,7 +10,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   int _currentIndex = 0;
   final List<Widget> _pages = [
-    CrudTablePage(),
+    SupplierTransactionsTable(width: 1000, height: 1000),
     Center(child: Text('Settings Page')),
   ];
 
