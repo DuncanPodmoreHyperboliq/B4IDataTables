@@ -664,3 +664,199 @@ class IFS {
     };
   }
 }
+
+class Upliftment {
+  final String? flightFrom;
+  final String? flightTo;
+  final double? upliftVolume;
+  final DateTime? transactionDate;
+  final String? transactionInvoiceNumber;
+  final double? transactionAmountIncVat;
+  final double? transactionAmountExclVat;
+  final String? status;
+  final String? supplierLocation;
+  final bool? isSplit;
+  final String? supplierName;
+  final DateTime? flightDateTime;
+  final String? flightAircraftRegistration;
+  final String? flightNumber;
+  final String? fuelSlip;
+  final num? originalValueIfCorrected;
+  final double? purchasePricePerLiter;
+  final double? salesPricePerLiter;
+  final double? purchasePrice;
+  final double? salePrice;
+  final double? gp;
+
+  Upliftment({
+    this.flightFrom,
+    this.flightTo,
+    this.upliftVolume,
+    this.transactionDate,
+    this.transactionInvoiceNumber,
+    this.transactionAmountIncVat,
+    this.transactionAmountExclVat,
+    this.status,
+    this.supplierLocation,
+    this.isSplit,
+    this.supplierName,
+    this.flightDateTime,
+    this.flightAircraftRegistration,
+    this.flightNumber,
+    this.fuelSlip,
+    this.originalValueIfCorrected,
+    this.purchasePricePerLiter,
+    this.salesPricePerLiter,
+    this.purchasePrice,
+    this.salePrice,
+    this.gp,
+  });
+
+  /// Factory constructor to create an instance from a JSON object
+  factory Upliftment.fromJson(Map<String, dynamic> json) {
+    return Upliftment(
+      flightFrom: json['flight_from'],
+      flightTo: json['flight_to'],
+      upliftVolume: json['uplift_volume'],
+      transactionDate: json['transaction_date'] != null
+          ? DateTime.parse(json['transaction_date'])
+          : null,
+      transactionInvoiceNumber: json['transaction_invoice_number'],
+      transactionAmountIncVat: json['transaction_amount_inc_vat'],
+      transactionAmountExclVat: json['transaction_amount_excl_vat'],
+      status: json['status'],
+      supplierLocation: json['supplier_location'],
+      isSplit: json['is_split'],
+      supplierName: json['supplier_name'],
+      flightDateTime: json['flight_date_time'] != null
+          ? DateTime.parse(json['flight_date_time'])
+          : null,
+      flightAircraftRegistration: json['flight_aircraft_registration'],
+      flightNumber: json['flight_number'],
+      fuelSlip: json['fuel_slip'],
+      originalValueIfCorrected: json['original_value_if_corrected'],
+      purchasePricePerLiter: json['purchase_price_per_liter'],
+      salesPricePerLiter: json['sales_price_per_liter'],
+      purchasePrice: json['purchase_price'],
+      salePrice: json['sale_price'],
+      gp: json['gp'],
+    );
+  }
+
+  /// Method to convert an instance to a JSON object
+  Map<String, dynamic> toJson() {
+    return {
+      'flight_from': flightFrom,
+      'flight_to': flightTo,
+      'uplift_volume': upliftVolume,
+      'transaction_date': transactionDate?.toIso8601String(),
+      'transaction_invoice_number': transactionInvoiceNumber,
+      'transaction_amount_inc_vat': transactionAmountIncVat,
+      'transaction_amount_excl_vat': transactionAmountExclVat,
+      'status': status,
+      'supplier_location': supplierLocation,
+      'is_split': isSplit,
+      'supplier_name': supplierName,
+      'flight_date_time': flightDateTime?.toIso8601String(),
+      'flight_aircraft_registration': flightAircraftRegistration,
+      'flight_number': flightNumber,
+      'fuel_slip': fuelSlip,
+      'original_value_if_corrected': originalValueIfCorrected,
+      'purchase_price_per_liter': purchasePricePerLiter,
+      'sales_price_per_liter': salesPricePerLiter,
+      'purchase_price': purchasePrice,
+      'sale_price': salePrice,
+      'gp': gp,
+    };
+  }
+}
+
+class Flight {
+  final String originCode;
+  final String destinationCode;
+  final String flightNumber;
+  final String departureStatus;
+  final String status;
+  final String arrivalStatus;
+  final String estimatedDeparture;
+  final String actualDeparture;
+  final String estimatedArrival;
+  final String actualArrival;
+  final String scheduledDeparture;
+  final String scheduledArrival;
+  final String currentDepartureDisplayText;
+  final String currentArrivalDisplayText;
+  final DateTime currentDeparture;
+  final DateTime currentArrival;
+  final String? departureGate;
+  final String? baggageReclaimId;
+
+  Flight({
+    required this.originCode,
+    required this.destinationCode,
+    required this.flightNumber,
+    required this.departureStatus,
+    required this.status,
+    required this.arrivalStatus,
+    required this.estimatedDeparture,
+    required this.actualDeparture,
+    required this.estimatedArrival,
+    required this.actualArrival,
+    required this.scheduledDeparture,
+    required this.scheduledArrival,
+    required this.currentDepartureDisplayText,
+    required this.currentArrivalDisplayText,
+    required this.currentDeparture,
+    required this.currentArrival,
+    this.departureGate,
+    this.baggageReclaimId,
+  });
+
+  /// Factory constructor to create an instance from a JSON object
+  factory Flight.fromJson(Map<String, dynamic> json) {
+    return Flight(
+      originCode: json['originCode'],
+      destinationCode: json['destinationCode'],
+      flightNumber: json['flightNumber'],
+      departureStatus: json['departureStatus'],
+      status: json['status'],
+      arrivalStatus: json['arrivalStatus'],
+      estimatedDeparture: json['estimatedDeparture'],
+      actualDeparture: json['actualDeparture'],
+      estimatedArrival: json['estimatedArrival'],
+      actualArrival: json['actualArrival'],
+      scheduledDeparture: json['scheduledDeparture'],
+      scheduledArrival: json['scheduledArrival'],
+      currentDepartureDisplayText: json['currentDepartureDisplayText'],
+      currentArrivalDisplayText: json['currentArrivalDisplayText'],
+      currentDeparture: DateTime.parse(json['currentDeparture']),
+      currentArrival: DateTime.parse(json['currentArrival']),
+      departureGate: json['departureGate'],
+      baggageReclaimId: json['baggageReclaimId'],
+    );
+  }
+
+  /// Method to convert an instance to a JSON object
+  Map<String, dynamic> toJson() {
+    return {
+      'originCode': originCode,
+      'destinationCode': destinationCode,
+      'flightNumber': flightNumber,
+      'departureStatus': departureStatus,
+      'status': status,
+      'arrivalStatus': arrivalStatus,
+      'estimatedDeparture': estimatedDeparture,
+      'actualDeparture': actualDeparture,
+      'estimatedArrival': estimatedArrival,
+      'actualArrival': actualArrival,
+      'scheduledDeparture': scheduledDeparture,
+      'scheduledArrival': scheduledArrival,
+      'currentDepartureDisplayText': currentDepartureDisplayText,
+      'currentArrivalDisplayText': currentArrivalDisplayText,
+      'currentDeparture': currentDeparture.toIso8601String(),
+      'currentArrival': currentArrival.toIso8601String(),
+      'departureGate': departureGate,
+      'baggageReclaimId': baggageReclaimId,
+    };
+  }
+}
