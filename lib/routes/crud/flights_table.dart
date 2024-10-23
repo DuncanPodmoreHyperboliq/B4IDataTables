@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:pluto_grid_plus/pluto_grid_plus.dart';
 import 'package:http/http.dart' as http;
@@ -294,16 +296,24 @@ class _FlightsTableState extends State<FlightsTable> {
   void _onPageChanged(int newPage) {
     setState(() {
       _currentPage = newPage;
-    });
-  }
+      // Ensures that the new page rows are recalculated.
+      _getCurrentPageRows();
+    });  }
 
   List<PlutoRow> _getCurrentPageRows() {
+    print(_currentPage);
     final start = (_currentPage - 1) * _pageSize;
     final end = start + _pageSize;
-    return filteredRows.sublist(
+    // print(filteredRows.sublist(
+    //   start,
+    //   end > filteredRows.length ? filteredRows.length : end,
+    // ).map((r) => r.cells['flightNumber']?.value));
+
+    final newRows = filteredRows.sublist(
       start,
       end > filteredRows.length ? filteredRows.length : end,
     );
+    return newRows;
   }
 
   @override
@@ -311,6 +321,15 @@ class _FlightsTableState extends State<FlightsTable> {
     int totalPages = (_totalRecords / _pageSize).ceil();
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Flights Table'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: fetchFlights,
+          ),
+        ],
+      ),
       body: _loading
           ? Center(child: CircularProgressIndicator())
           : Column(
@@ -342,6 +361,12 @@ class _FlightsTableState extends State<FlightsTable> {
           ),
           _buildPaginationControls(totalPages),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.add),
+        onPressed: () {
+          // Implement add new flight functionality if needed
+        },
       ),
     );
   }

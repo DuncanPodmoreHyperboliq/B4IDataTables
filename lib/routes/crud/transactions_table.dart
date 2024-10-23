@@ -274,8 +274,8 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
 
       // Apply filters dynamically
       filters.forEach((field, value) {
-        query =
-            query.ilike(field, '%$value%'); // Apply filters to the correct fields
+        query = query.ilike(
+            field, '%$value%'); // Apply filters to the correct fields
       });
 
       // Fetch data with pagination
@@ -382,8 +382,9 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
         children: [
           IconButton(
             icon: Icon(Icons.chevron_left),
-            onPressed:
-            _currentPage > 1 ? () => _onPageChanged(_currentPage - 1) : null,
+            onPressed: _currentPage > 1
+                ? () => _onPageChanged(_currentPage - 1)
+                : null,
           ),
           Text('Page $_currentPage of $totalPages'),
           IconButton(

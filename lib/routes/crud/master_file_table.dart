@@ -266,7 +266,7 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
     try {
       setState(() => _loading = true);
 
-      var query = SupabaseConfig.client.from('upliftments').select(
+      var query = SupabaseConfig.client.from('master_view_v1').select(
         '*',
         const FetchOptions(count: CountOption.exact),
       );
@@ -392,7 +392,7 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
 
   Future<void> _deleteUpliftment(int upliftmentId) async {
     await SupabaseConfig.client
-        .from('upliftments')
+        .from('master_view_v1')
         .delete()
         .eq('upliftment_id', upliftmentId);
     fetchUpliftments();
@@ -407,11 +407,12 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
 
   // Fetch filtered data from Supabase
   Future<void> _fetchFilteredUpliftments(Map<String, String> filters) async {
+    if (filters.isEmpty) return;
     setState(() => _loading = true);
 
     try {
       // Build the query with filters
-      var query = SupabaseConfig.client.from('upliftments').select('*');
+      var query = SupabaseConfig.client.from('master_view_v1').select('*');
 
       // Apply filters dynamically
       filters.forEach((field, value) {
@@ -511,14 +512,13 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
                   _stateManager = event.stateManager;
 
                   // Listen for filter changes and trigger a data fetch
-                  _stateManager.setFilter(
-                        (event) {
-                      final filters = _extractFilters();
-                      _fetchFilteredUpliftments(
-                          filters); // Fetch data with filters
-                          return true;
-                    },
-                  );
+                  _stateManager.addListener(() {
+                    final filters = _extractFilters();
+                    _fetchFilteredUpliftments(
+                        filters); // Fetch data with filters
+                  });
+
+
                 },
                 configuration: const PlutoGridConfiguration(
                   columnSize: PlutoGridColumnSizeConfig(
