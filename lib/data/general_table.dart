@@ -10,6 +10,7 @@ class SupabasePlutoGrid extends StatefulWidget {
     required this.columnFields,
     required this.columnTitles,
     required this.columnTypes,
+    required this.selectQuery,
     this.joinFields,
     this.width,
     this.height,
@@ -25,6 +26,7 @@ class SupabasePlutoGrid extends StatefulWidget {
   final String columnFields;
   final String columnTitles;
   final String columnTypes;
+  final String selectQuery;
   final Map<String, String>? joinFields; // New: Join configuration
   final double? width;
   final double? height;
@@ -47,7 +49,6 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
   String _errorMessage = '';
   late final PlutoGridStateManager _stateManager;
   int _totalRows = 0;
-  bool _isRowExpanded = false; // Track row expansion state
 
   @override
   void initState() {
@@ -123,12 +124,7 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
       _totalRows = countResult.count ?? 0;
 
       // Build the query
-      final queryBuilder = supabase.from(widget.tableName).select(
-          '''
-      id, name, price, preset_id,
-      PartPresets (id, name)
-      '''
-      );
+      final queryBuilder = supabase.from(widget.tableName).select(widget.selectQuery);
 
       // Apply filters if enabled
       if (widget.enableSearch && request.filterRows.isNotEmpty) {

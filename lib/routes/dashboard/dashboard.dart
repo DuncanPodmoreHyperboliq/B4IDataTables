@@ -22,6 +22,10 @@ class _DashboardPageState extends State<DashboardPage> {
   final List<Widget> _pages = [
     const SupabasePlutoGrid(
       tableName: 'Parts',
+      selectQuery: '''
+      id, name, price, preset_id,
+      PartPresets (id, name)
+      ''',
       columnFields:
           'id,name,price,preset_id,PartPresets.name',
       columnTitles: 'ID,Part Name,Price,Preset ID,Preset Name',
