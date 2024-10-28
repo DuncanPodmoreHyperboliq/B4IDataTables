@@ -20,6 +20,7 @@ class SupabasePlutoGrid extends StatefulWidget {
     this.rowsPerPage = 20,
     this.borderRadius = 8,
     this.showExport = true,
+    this.columnColors, // New: Column colors
   }) : super(key: key);
 
   final String tableName;
@@ -27,7 +28,7 @@ class SupabasePlutoGrid extends StatefulWidget {
   final String columnTitles;
   final String columnTypes;
   final String selectQuery;
-  final Map<String, String>? joinFields; // New: Join configuration
+  final Map<String, String>? joinFields;
   final double? width;
   final double? height;
   final bool enableSearch;
@@ -36,6 +37,7 @@ class SupabasePlutoGrid extends StatefulWidget {
   final int rowsPerPage;
   final double borderRadius;
   final bool showExport;
+  final Map<String, Color>? columnColors; // New: Column colors
 
   @override
   State<SupabasePlutoGrid> createState() => _SupabasePlutoGridState();
@@ -49,11 +51,29 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
   String _errorMessage = '';
   late final PlutoGridStateManager _stateManager;
   int _totalRows = 0;
+  late Map<String, String> _fieldTypeMap;
 
   @override
   void initState() {
     super.initState();
     _initializeColumns();
+    _initializeFieldTypeMap();
+
+  }
+
+  void _initializeFieldTypeMap() {
+    final fields = widget.columnFields.split(',');
+    final types = widget.columnTypes.split(',');
+
+    if (fields.length != types.length) {
+      throw Exception(
+          'Column fields and types must have the same number of items');
+    }
+
+    _fieldTypeMap = {
+      for (int i = 0; i < fields.length; i++)
+        fields[i].trim(): types[i].trim().toLowerCase(),
+    };
   }
 
   void _initializeColumns() {
@@ -84,9 +104,13 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
           type = PlutoColumnType.text();
       }
 
+      // Check if the current column has a specified color
+      final field = fields[index].trim();
+      final color = widget.columnColors != null ? widget.columnColors![field] : null;
+
       return PlutoColumn(
         title: titles[index].trim(),
-        field: fields[index].trim(),
+        field: field,
         type: type,
         enableFilterMenuItem: widget.enableColumnFiltering,
         enableSorting: widget.enableSorting,
@@ -94,16 +118,34 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
         minWidth: 80,
         enableContextMenu: true,
         enableDropToResize: true,
+        // Apply a custom renderer if a color is specified
+        renderer: color != null
+            ? (rendererContext) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            color: color.withOpacity(0.2), // Light background color
+            child: Text(
+              rendererContext.cell.value?.toString() ?? '',
+              style: TextStyle(
+                color: color, // Text color matching the highlight
+              ),
+            ),
+          );
+        }
+            : null,
+        // Set header text style if color is specified
+        // titleTextStyle: color != null
+        //     ? TextStyle(
+        //   color: color,
+        //   fontWeight: FontWeight.bold,
+        // )
+        //     : null,
       );
     });
   }
 
-
   void _toggleRowExpansion(PlutoRow row) {
-    // setState(() {
-    //   row.setExpanded(!_isRowExpanded);
-    //   _isRowExpanded = !_isRowExpanded;
-    // });
+    // Future implementation if needed
   }
 
   Future<PlutoLazyPaginationResponse> _fetch(
@@ -130,15 +172,59 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
       if (widget.enableSearch && request.filterRows.isNotEmpty) {
         final filterMap = FilterHelper.convertRowsToMap(request.filterRows);
         for (var entry in filterMap.entries) {
+          final field = entry.key;
+          final type = _fieldTypeMap[field];
+
           for (var filter in entry.value) {
             final filterType = filter.entries.first;
-            switch (filterType.key) {
-              case 'Contains':
-                queryBuilder.ilike(entry.key, '%${filterType.value}%');
+            final filterValue = filterType.value;
+
+            if (type == null) continue; // Skip if type is unknown
+
+            switch (type) {
+              case 'text':
+                switch (filterType.key) {
+                  case 'Contains':
+                    queryBuilder.ilike(field, '%$filterValue%');
+                    break;
+                  case 'Equals':
+                    queryBuilder.eq(field, filterValue);
+                    break;
+                // Add more text-based filters if needed
+                }
                 break;
-              case 'Equals':
-                queryBuilder.eq(entry.key, filterType.value);
+
+              case 'number':
+                switch (filterType.key) {
+                  case 'Equals':
+                    queryBuilder.eq(field, num.tryParse(filterValue) ?? filterValue);
+                    break;
+                  case 'Greater than':
+                    queryBuilder.gt(field, num.tryParse(filterValue) ?? filterValue);
+                    break;
+                  case 'Less than':
+                    queryBuilder.lt(field, num.tryParse(filterValue) ?? filterValue);
+                    break;
+                // Add more numeric-based filters if needed
+                }
                 break;
+
+              case 'date':
+                switch (filterType.key) {
+                  case 'Equals':
+                    queryBuilder.eq(field, filterValue);
+                    break;
+                  case 'Before':
+                    queryBuilder.lte(field, filterValue);
+                    break;
+                  case 'After':
+                    queryBuilder.gte(field, filterValue);
+                    break;
+                // Add more date-based filters if needed
+                }
+                break;
+
+            // Handle other types as necessary
             }
           }
         }
@@ -175,12 +261,14 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
 
                 // Traverse nested data if necessary
                 for (var part in parts) {
-                  value = row?[part];
+                  value = value?[part];
                 }
 
                 // Ensure the value is correctly cast for PlutoCell
                 if (value is int || value is double || value is String) {
                   return MapEntry(field, PlutoCell(value: value));
+                } else if (value is DateTime) {
+                  return MapEntry(field, PlutoCell(value: value.toIso8601String()));
                 } else {
                   return MapEntry(field, PlutoCell(value: value?.toString() ?? ''));
                 }
@@ -205,7 +293,6 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
       );
     }
   }
-
 
 
   @override

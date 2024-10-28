@@ -1,10 +1,4 @@
-import 'package:b4i_frontend/routes/crud/flights_table.dart';
-import 'package:b4i_frontend/routes/crud/ifs_table.dart';
-import 'package:b4i_frontend/routes/crud/master_file_table.dart';
-import 'package:b4i_frontend/routes/crud/suppliers_table.dart';
-import 'package:b4i_frontend/routes/crud/transactions_table.dart';
 import 'package:flutter/material.dart';
-import 'package:b4i_frontend/routes/crud/airports_table.dart';
 import 'dart:html' as html;
 import 'dart:convert';
 
@@ -42,6 +36,11 @@ class _DashboardPageState extends State<DashboardPage> {
       rowsPerPage: 10,
       borderRadius: 8,
       showExport: true,
+      columnColors:  {
+        'price': Colors.green, // Highlight the 'price' column in green
+        'preset_id': Colors.blue, // Highlight the 'preset_id' column in blue
+        'PartPresets.name': Colors.orange, // Highlight the 'PartPresets.name' column in orange
+      },
     ),
     Center(
         child: MaterialButton(

@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+// Begin custom widget code
+// DO NOT REMOVE OR MODIFY THE CODE ABOVE!
+
+// Set your widget name, define your parameter, and then add the
+// boilerplate code using the green button on the right!
 import 'package:pluto_grid_plus/pluto_grid_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -59,17 +64,15 @@ class AirportsTable extends StatefulWidget {
     required this.width,
     required this.height,
   }) : super(key: key);
-
 }
 
 class _AirportsTableState extends State<AirportsTable> {
-
   List<PlutoColumn> columns = [];
   List<PlutoRow> rows = [];
   late PlutoGridStateManager _stateManager;
 
   int _currentPage = 1;
-  final int _pageSize = 10;
+  final int _pageSize = 100;
   bool _loading = true;
   int _totalRecords = 0;
 
@@ -334,6 +337,8 @@ class _AirportsTableState extends State<AirportsTable> {
                 rows: rows,
                 onLoaded: (PlutoGridOnLoadedEvent event) {
                   _stateManager = event.stateManager;
+                  print('null check');
+                  print(_stateManager == null);
 
                   // Listen for filter changes and trigger a data fetch
                   _stateManager.addListener(() {
