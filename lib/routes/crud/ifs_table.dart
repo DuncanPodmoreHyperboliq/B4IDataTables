@@ -12,7 +12,9 @@ class IFS {
   final String? flightAircraftRegistration;
   final String? flightNumber;
   final int? flightOriginId;
+  final String? flightOriginName;
   final int? flightDestinationId;
+  final String? flightDestinationName;
   final double? upliftVolume;
   final DateTime? createdAt;
   final String? invoiceNo;
@@ -23,7 +25,9 @@ class IFS {
     this.flightAircraftRegistration,
     this.flightNumber,
     this.flightOriginId,
+    this.flightOriginName,
     this.flightDestinationId,
+    this.flightDestinationName,
     this.upliftVolume,
     this.createdAt,
     this.invoiceNo,
@@ -38,7 +42,9 @@ class IFS {
       flightAircraftRegistration: json['flight_aircraft_registration'],
       flightNumber: json['flight_number'],
       flightOriginId: json['flight_origin_id'],
+      flightOriginName: json['flight_origin']?['airport_name'] ?? '',
       flightDestinationId: json['flight_destination_id'],
+      flightDestinationName: json['flight_destination']?['airport_name'] ?? '',
       upliftVolume: (json['uplift_volume'] ?? 0).toDouble(),
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
@@ -54,7 +60,9 @@ class IFS {
       'flight_aircraft_registration': flightAircraftRegistration,
       'flight_number': flightNumber,
       'flight_origin_id': flightOriginId,
+      'flight_origin_name': flightOriginName,
       'flight_destination_id': flightDestinationId,
+      'flight_destination_name': flightDestinationName,
       'uplift_volume': upliftVolume,
       'created_at': createdAt?.toIso8601String(),
       'invoice_no': invoiceNo,
@@ -82,7 +90,7 @@ class _IFSTableState extends State<IFSTable> {
   late PlutoGridStateManager _stateManager;
 
   int _currentPage = 1;
-  final int _pageSize = 10;
+  final int _pageSize = 100;
   bool _loading = true;
   int _totalRecords = 0;
 
@@ -95,12 +103,6 @@ class _IFSTableState extends State<IFSTable> {
 
   void _initializeColumns() {
     columns = [
-      PlutoColumn(
-        title: 'IFS ID',
-        field: 'ifs_id',
-        type: PlutoColumnType.number(),
-        enableEditingMode: false,
-      ),
       PlutoColumn(
         title: 'Flight Date/Time',
         field: 'flight_date_time',
@@ -117,14 +119,14 @@ class _IFSTableState extends State<IFSTable> {
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
-        title: 'Origin ID',
-        field: 'flight_origin_id',
-        type: PlutoColumnType.number(),
+        title: 'Flight Origin',
+        field: 'flight_origin_name',
+        type: PlutoColumnType.text(),
       ),
       PlutoColumn(
-        title: 'Destination ID',
-        field: 'flight_destination_id',
-        type: PlutoColumnType.number(),
+        title: 'Flight Destination',
+        field: 'flight_destination_name',
+        type: PlutoColumnType.text(),
       ),
       PlutoColumn(
         title: 'Uplift Volume',
@@ -135,11 +137,6 @@ class _IFSTableState extends State<IFSTable> {
         title: 'Created At',
         field: 'created_at',
         type: PlutoColumnType.date(),
-      ),
-      PlutoColumn(
-        title: 'Invoice No',
-        field: 'invoice_no',
-        type: PlutoColumnType.text(),
       ),
       PlutoColumn(
         title: 'Actions',
@@ -160,14 +157,24 @@ class _IFSTableState extends State<IFSTable> {
       setState(() => _loading = true);
 
       var query = SupabaseConfig.client.from('ifs').select(
-        '*',
+        '''
+        *,
+        flight_origin:flight_origin_id(airport_name),
+        flight_destination:flight_destination_id(airport_name)
+        ''',
         const FetchOptions(count: CountOption.exact),
       );
 
       // Apply filters dynamically
       if (filters != null && filters.isNotEmpty) {
         filters.forEach((field, value) {
-          query = query.ilike(field, '%$value%');
+          if (field == 'flight_origin_name') {
+            query = query.ilike('flight_origin.airport_name', '%$value%');
+          } else if (field == 'flight_destination_name') {
+            query = query.ilike('flight_destination.airport_name', '%$value%');
+          } else {
+            query = query.ilike(field, '%$value%');
+          }
         });
       }
 
@@ -179,6 +186,11 @@ class _IFSTableState extends State<IFSTable> {
       )
           .execute();
 
+      if (response == null) {
+        print('Error fetching IFS records: ');
+        return;
+      }
+
       if (response.data != null && response.data.isNotEmpty) {
         final List<dynamic> data = response.data;
 
@@ -188,18 +200,16 @@ class _IFSTableState extends State<IFSTable> {
 
           return PlutoRow(
             cells: {
-              'ifs_id': PlutoCell(value: ifsRecord.ifsId),
               'flight_date_time': PlutoCell(value: ifsRecord.flightDateTime),
               'flight_aircraft_registration':
               PlutoCell(value: ifsRecord.flightAircraftRegistration ?? ''),
               'flight_number': PlutoCell(value: ifsRecord.flightNumber ?? ''),
-              'flight_origin_id':
-              PlutoCell(value: ifsRecord.flightOriginId ?? 0),
-              'flight_destination_id':
-              PlutoCell(value: ifsRecord.flightDestinationId ?? 0),
+              'flight_origin_name':
+              PlutoCell(value: ifsRecord.flightOriginName ?? ''),
+              'flight_destination_name':
+              PlutoCell(value: ifsRecord.flightDestinationName ?? ''),
               'uplift_volume': PlutoCell(value: ifsRecord.upliftVolume ?? 0),
               'created_at': PlutoCell(value: ifsRecord.createdAt),
-              'invoice_no': PlutoCell(value: ifsRecord.invoiceNo ?? ''),
               'actions': PlutoCell(value: ''),
             },
           );
@@ -228,7 +238,7 @@ class _IFSTableState extends State<IFSTable> {
     final filters = <String, String>{};
 
     for (final filterRow in _stateManager.filterRows) {
-      String? columnField = filterRow.cells['column']?.value;
+      String? columnField = filterRow.cells['column']?.value?.field;
       String filterValue = filterRow.cells['value']?.value;
 
       // If both field and value are valid, add to filters
@@ -243,24 +253,8 @@ class _IFSTableState extends State<IFSTable> {
   }
 
   void _onFilterChanged() {
-    final filters = <String, String>{};
-    for (var column in columns) {
-      final filter = _stateManager.filteredCellValue(column: column);
-      if (filter != null && filter.filterValue.isNotEmpty) {
-        filters[column.field] = filter.filterValue;
-      }
-    }
+    final filters = _extractFilters();
     fetchIFSRecords(filters: filters); // Fetch data with applied filters
-  }
-
-  Future<void> _editIFSRecord(int ifsId) async {
-    print('Edit IFS record with ID: $ifsId');
-    // Implement edit functionality
-  }
-
-  Future<void> _deleteIFSRecord(int ifsId) async {
-    await SupabaseConfig.client.from('ifs').delete().eq('ifs_id', ifsId);
-    fetchIFSRecords();
   }
 
   void _onPageChanged(int newPage) {
@@ -270,79 +264,9 @@ class _IFSTableState extends State<IFSTable> {
     });
   }
 
-  // Fetch filtered data from Supabase
-  Future<void> _fetchFilteredIFSRecords(Map<String, String> filters) async {
-    setState(() => _loading = true);
-
-    try {
-      // Build the query with filters
-      var query = SupabaseConfig.client.from('ifs').select('*');
-
-      // Apply filters dynamically
-      filters.forEach((field, value) {
-        query = query.ilike(field, '%$value%');
-      });
-
-      // Fetch data with pagination
-      final response = await query
-          .range(
-        (_currentPage - 1) * _pageSize,
-        (_currentPage * _pageSize) - 1,
-      )
-          .execute();
-
-      if (response.data != null && response.data.isNotEmpty) {
-        final List<dynamic> data = response.data;
-
-        // Convert fetched data to PlutoRows
-        final newRows = data.map<PlutoRow>((item) {
-          final ifsRecord = IFS.fromJson(item);
-
-          return PlutoRow(
-            cells: {
-              'ifs_id': PlutoCell(value: ifsRecord.ifsId),
-              'flight_date_time': PlutoCell(value: ifsRecord.flightDateTime),
-              'flight_aircraft_registration':
-              PlutoCell(value: ifsRecord.flightAircraftRegistration ?? ''),
-              'flight_number': PlutoCell(value: ifsRecord.flightNumber ?? ''),
-              'flight_origin_id':
-              PlutoCell(value: ifsRecord.flightOriginId ?? 0),
-              'flight_destination_id':
-              PlutoCell(value: ifsRecord.flightDestinationId ?? 0),
-              'uplift_volume': PlutoCell(value: ifsRecord.upliftVolume ?? 0),
-              'created_at': PlutoCell(value: ifsRecord.createdAt),
-              'invoice_no': PlutoCell(value: ifsRecord.invoiceNo ?? ''),
-              'actions': PlutoCell(value: ''),
-            },
-          );
-        }).toList();
-
-        setState(() {
-          _stateManager.refRows.clear();
-          _stateManager.removeAllRows();
-          _stateManager.refRows.addAll(newRows);
-        });
-      } else {
-        print('No data found.');
-      }
-    } catch (e) {
-      print('Error fetching IFS records: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     int totalPages = (_totalRecords / _pageSize).ceil();
-
-    TextEditingController _searchController = TextEditingController();
-
-    @override
-    void dispose() {
-      _searchController.dispose();
-      super.dispose();
-    }
 
     return Scaffold(
       body: _loading
@@ -360,9 +284,7 @@ class _IFSTableState extends State<IFSTable> {
 
                   // Listen for filter changes and trigger a data fetch
                   _stateManager.addListener(() {
-                    final filters = _extractFilters();
-                    _fetchFilteredIFSRecords(
-                        filters); // Fetch data with filters
+                    _onFilterChanged();
                   });
                 },
                 configuration: const PlutoGridConfiguration(
@@ -382,13 +304,15 @@ class _IFSTableState extends State<IFSTable> {
   Widget _buildPaginationControls(int totalPages) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Row(
+      child: totalPages > 1
+          ? Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
             icon: Icon(Icons.chevron_left),
-            onPressed:
-            _currentPage > 1 ? () => _onPageChanged(_currentPage - 1) : null,
+            onPressed: _currentPage > 1
+                ? () => _onPageChanged(_currentPage - 1)
+                : null,
           ),
           Text('Page $_currentPage of $totalPages'),
           IconButton(
@@ -398,7 +322,8 @@ class _IFSTableState extends State<IFSTable> {
                 : null,
           ),
         ],
-      ),
+      )
+          : Container(),
     );
   }
 }

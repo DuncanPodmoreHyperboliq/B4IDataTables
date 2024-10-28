@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:pluto_grid_plus/pluto_grid_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -7,49 +8,57 @@ class SupabaseConfig {
 }
 
 class SupplierTransactions {
+  final int transactionId;
   final int locationId;
+  final String locationName;
   final String flightNumber;
   final String transactionInvoiceNumber;
   final double supplierInvoiceQty;
   final int supplierId;
+  final String supplierName;
   final DateTime supplierInvoiceDate;
   final double transactionAmount;
-  final int transactionId;
 
   SupplierTransactions({
+    required this.transactionId,
     required this.locationId,
+    required this.locationName,
     required this.flightNumber,
     required this.transactionInvoiceNumber,
     required this.supplierInvoiceQty,
     required this.supplierId,
+    required this.supplierName,
     required this.supplierInvoiceDate,
     required this.transactionAmount,
-    required this.transactionId,
   });
 
   factory SupplierTransactions.fromJson(Map<String, dynamic> json) {
     return SupplierTransactions(
+      transactionId: json['transaction_id'],
       locationId: json['location_id'],
+      locationName: json['location']?['location_name'] ?? '',
       flightNumber: json['flight_number'],
       transactionInvoiceNumber: json['transaction_invoice_number'],
       supplierInvoiceQty: (json['supplier_invoice_qty'] ?? 0).toDouble(),
       supplierId: json['supplier_id'],
+      supplierName: json['supplier']?['supplier_name'] ?? '',
       supplierInvoiceDate: DateTime.parse(json['supplier_invoice_date']),
       transactionAmount: (json['transaction_amount'] ?? 0).toDouble(),
-      transactionId: json['transaction_id'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'transaction_id': transactionId,
       'location_id': locationId,
+      'location_name': locationName,
       'flight_number': flightNumber,
       'transaction_invoice_number': transactionInvoiceNumber,
       'supplier_invoice_qty': supplierInvoiceQty,
       'supplier_id': supplierId,
+      'supplier_name': supplierName,
       'supplier_invoice_date': supplierInvoiceDate.toIso8601String(),
       'transaction_amount': transactionAmount,
-      'transaction_id': transactionId,
     };
   }
 }
@@ -75,7 +84,7 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
   late PlutoGridStateManager _stateManager;
 
   int _currentPage = 1;
-  final int _pageSize = 10;
+  final int _pageSize = 100;
   bool _loading = true;
   int _totalRecords = 0;
 
@@ -89,15 +98,9 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
   void _initializeColumns() {
     columns = [
       PlutoColumn(
-        title: 'Transaction ID',
-        field: 'transaction_id',
-        type: PlutoColumnType.number(),
-        enableEditingMode: false,
-      ),
-      PlutoColumn(
-        title: 'Location ID',
-        field: 'location_id',
-        type: PlutoColumnType.number(),
+        title: 'Location Name',
+        field: 'location_name',
+        type: PlutoColumnType.text(),
       ),
       PlutoColumn(
         title: 'Flight Number',
@@ -115,9 +118,9 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
         type: PlutoColumnType.number(),
       ),
       PlutoColumn(
-        title: 'Supplier ID',
-        field: 'supplier_id',
-        type: PlutoColumnType.number(),
+        title: 'Supplier Name',
+        field: 'supplier_name',
+        type: PlutoColumnType.text(),
       ),
       PlutoColumn(
         title: 'Invoice Date',
@@ -148,14 +151,24 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
       setState(() => _loading = true);
 
       var query = SupabaseConfig.client.from('supplier_transactions').select(
-        '*',
+        '''
+            *,
+            supplier:supplier_id(supplier_name),
+            location:location_id(location_name)
+            ''',
         const FetchOptions(count: CountOption.exact),
       );
 
       // Apply filters dynamically
       if (filters != null && filters.isNotEmpty) {
         filters.forEach((field, value) {
-          query = query.ilike(field, '%$value%');
+          if (field == 'supplier_name') {
+            query = query.ilike('supplier.supplier_name', '%$value%');
+          } else if (field == 'location_name') {
+            query = query.ilike('location.location_name', '%$value%');
+          } else {
+            query = query.ilike(field, '%$value%');
+          }
         });
       }
 
@@ -167,6 +180,11 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
       )
           .execute();
 
+      if (response == null) {
+        print('Error fetching supplier transactions:');
+        return;
+      }
+
       if (response.data != null && response.data.isNotEmpty) {
         final List<dynamic> data = response.data;
 
@@ -176,14 +194,13 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
 
           return PlutoRow(
             cells: {
-              'transaction_id': PlutoCell(value: transaction.transactionId),
-              'location_id': PlutoCell(value: transaction.locationId),
+              'location_name': PlutoCell(value: transaction.locationName),
               'flight_number': PlutoCell(value: transaction.flightNumber),
               'transaction_invoice_number':
               PlutoCell(value: transaction.transactionInvoiceNumber),
               'supplier_invoice_qty':
               PlutoCell(value: transaction.supplierInvoiceQty),
-              'supplier_id': PlutoCell(value: transaction.supplierId),
+              'supplier_name': PlutoCell(value: transaction.supplierName),
               'supplier_invoice_date':
               PlutoCell(value: transaction.supplierInvoiceDate),
               'transaction_amount':
@@ -216,7 +233,7 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
     final filters = <String, String>{};
 
     for (final filterRow in _stateManager.filterRows) {
-      String? columnField = filterRow.cells['column']?.value;
+      String? columnField = filterRow.cells['column']?.value?.field;
       String filterValue = filterRow.cells['value']?.value;
 
       // If both field and value are valid, add to filters
@@ -231,28 +248,9 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
   }
 
   void _onFilterChanged() {
-    final filters = <String, String>{};
-    for (var column in columns) {
-      final filter = _stateManager.filteredCellValue(column: column);
-      if (filter != null && filter.filterValue.isNotEmpty) {
-        filters[column.field] = filter.filterValue;
-      }
-    }
+    final filters = _extractFilters();
     fetchSupplierTransactions(
         filters: filters); // Fetch data with applied filters
-  }
-
-  Future<void> _editTransaction(int transactionId) async {
-    print('Edit transaction with ID: $transactionId');
-    // Implement edit functionality
-  }
-
-  Future<void> _deleteTransaction(int transactionId) async {
-    await SupabaseConfig.client
-        .from('supplier_transactions')
-        .delete()
-        .eq('transaction_id', transactionId);
-    fetchSupplierTransactions();
   }
 
   void _onPageChanged(int newPage) {
@@ -262,82 +260,9 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
     });
   }
 
-  // Fetch filtered data from Supabase
-  Future<void> _fetchFilteredSupplierTransactions(
-      Map<String, String> filters) async {
-    setState(() => _loading = true);
-
-    try {
-      // Build the query with filters
-      var query =
-      SupabaseConfig.client.from('supplier_transactions').select('*');
-
-      // Apply filters dynamically
-      filters.forEach((field, value) {
-        query = query.ilike(
-            field, '%$value%'); // Apply filters to the correct fields
-      });
-
-      // Fetch data with pagination
-      final response = await query
-          .range(
-        (_currentPage - 1) * _pageSize,
-        (_currentPage * _pageSize) - 1,
-      )
-          .execute();
-
-      if (response.data != null && response.data.isNotEmpty) {
-        final List<dynamic> data = response.data;
-
-        // Convert fetched data to PlutoRows
-        final newRows = data.map<PlutoRow>((item) {
-          final transaction = SupplierTransactions.fromJson(item);
-
-          return PlutoRow(
-            cells: {
-              'transaction_id': PlutoCell(value: transaction.transactionId),
-              'location_id': PlutoCell(value: transaction.locationId),
-              'flight_number': PlutoCell(value: transaction.flightNumber),
-              'transaction_invoice_number':
-              PlutoCell(value: transaction.transactionInvoiceNumber),
-              'supplier_invoice_qty':
-              PlutoCell(value: transaction.supplierInvoiceQty),
-              'supplier_id': PlutoCell(value: transaction.supplierId),
-              'supplier_invoice_date':
-              PlutoCell(value: transaction.supplierInvoiceDate),
-              'transaction_amount':
-              PlutoCell(value: transaction.transactionAmount),
-              'actions': PlutoCell(value: ''),
-            },
-          );
-        }).toList();
-
-        setState(() {
-          _stateManager.refRows.clear();
-          _stateManager.removeAllRows();
-          _stateManager.refRows.addAll(newRows);
-        });
-      } else {
-        print('No data found.');
-      }
-    } catch (e) {
-      print('Error fetching supplier transactions: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     int totalPages = (_totalRecords / _pageSize).ceil();
-
-    TextEditingController _searchController = TextEditingController();
-
-    @override
-    void dispose() {
-      _searchController.dispose();
-      super.dispose();
-    }
 
     return Scaffold(
       body: _loading
@@ -355,9 +280,7 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
 
                   // Listen for filter changes and trigger a data fetch
                   _stateManager.addListener(() {
-                    final filters = _extractFilters();
-                    _fetchFilteredSupplierTransactions(
-                        filters); // Fetch data with filters
+                    _onFilterChanged();
                   });
                 },
                 configuration: const PlutoGridConfiguration(
@@ -377,7 +300,8 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
   Widget _buildPaginationControls(int totalPages) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Row(
+      child: totalPages > 1
+          ? Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
@@ -394,7 +318,8 @@ class _SupplierTransactionsTableState extends State<SupplierTransactionsTable> {
                 : null,
           ),
         ],
-      ),
+      )
+          : Container(),
     );
   }
 }

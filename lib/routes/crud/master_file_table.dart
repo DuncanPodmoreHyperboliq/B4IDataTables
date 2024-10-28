@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:pluto_grid_plus/pluto_grid_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -28,30 +29,31 @@ class Upliftment {
   final double? purchasePrice;
   final double? salePrice;
   final double? gp;
+  final double? difference;
 
-  Upliftment({
-    this.flightFrom,
-    this.flightTo,
-    this.upliftVolume,
-    this.transactionDate,
-    this.transactionInvoiceNumber,
-    this.transactionAmountIncVat,
-    this.transactionAmountExclVat,
-    this.status,
-    this.supplierLocation,
-    this.isSplit,
-    this.supplierName,
-    this.flightDateTime,
-    this.flightAircraftRegistration,
-    this.flightNumber,
-    this.fuelSlip,
-    this.originalValueIfCorrected,
-    this.purchasePricePerLiter,
-    this.salesPricePerLiter,
-    this.purchasePrice,
-    this.salePrice,
-    this.gp,
-  });
+  Upliftment(
+      {this.flightFrom,
+        this.flightTo,
+        this.upliftVolume,
+        this.transactionDate,
+        this.transactionInvoiceNumber,
+        this.transactionAmountIncVat,
+        this.transactionAmountExclVat,
+        this.status,
+        this.supplierLocation,
+        this.isSplit,
+        this.supplierName,
+        this.flightDateTime,
+        this.flightAircraftRegistration,
+        this.flightNumber,
+        this.fuelSlip,
+        this.originalValueIfCorrected,
+        this.purchasePricePerLiter,
+        this.salesPricePerLiter,
+        this.purchasePrice,
+        this.salePrice,
+        this.gp,
+        this.difference});
 
   factory Upliftment.fromJson(Map<String, dynamic> json) {
     return Upliftment(
@@ -62,8 +64,10 @@ class Upliftment {
           ? DateTime.parse(json['transaction_date'])
           : null,
       transactionInvoiceNumber: json['transaction_invoice_number'],
-      transactionAmountIncVat: (json['transaction_amount_inc_vat'] ?? 0).toDouble(),
-      transactionAmountExclVat: (json['transaction_amount_excl_vat'] ?? 0).toDouble(),
+      transactionAmountIncVat:
+      (json['transaction_amount_inc_vat'] ?? 0).toDouble(),
+      transactionAmountExclVat:
+      (json['transaction_amount_excl_vat'] ?? 0).toDouble(),
       status: json['status'],
       supplierLocation: json['supplier_location'],
       isSplit: json['is_split'],
@@ -80,6 +84,7 @@ class Upliftment {
       purchasePrice: (json['purchase_price'] ?? 0).toDouble(),
       salePrice: (json['sale_price'] ?? 0).toDouble(),
       gp: (json['gp'] ?? 0).toDouble(),
+      difference: (json['difference'] ?? 0).toDouble(),
     );
   }
 
@@ -106,6 +111,7 @@ class Upliftment {
       'purchase_price': purchasePrice,
       'sale_price': salePrice,
       'gp': gp,
+      'difference': difference,
     };
   }
 }
@@ -130,7 +136,7 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
   late PlutoGridStateManager _stateManager;
 
   int _currentPage = 1;
-  final int _pageSize = 10;
+  final int _pageSize = 100;
   bool _loading = true;
   int _totalRecords = 0;
 
@@ -244,6 +250,11 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
         type: PlutoColumnType.number(),
       ),
       PlutoColumn(
+        title: 'Difference',
+        field: 'difference',
+        type: PlutoColumnType.number(),
+      ),
+      PlutoColumn(
         title: 'GP',
         field: 'gp',
         type: PlutoColumnType.number(),
@@ -313,9 +324,12 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
               'status': PlutoCell(value: upliftment.status ?? ''),
               'supplier_location':
               PlutoCell(value: upliftment.supplierLocation ?? ''),
-              'is_split': PlutoCell(value: upliftment.isSplit != null
-                  ? upliftment.isSplit! ? 'Yes' : 'No'
-                  : 'Unknown'),
+              'is_split': PlutoCell(
+                  value: upliftment.isSplit != null
+                      ? upliftment.isSplit!
+                      ? 'Yes'
+                      : 'No'
+                      : 'Unknown'),
               'supplier_name': PlutoCell(value: upliftment.supplierName ?? ''),
               'flight_date_time':
               PlutoCell(value: upliftment.flightDateTime ?? DateTime.now()),
@@ -331,6 +345,7 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
               PlutoCell(value: upliftment.salesPricePerLiter ?? 0),
               'purchase_price': PlutoCell(value: upliftment.purchasePrice ?? 0),
               'sale_price': PlutoCell(value: upliftment.salePrice ?? 0),
+              'difference': PlutoCell(value: upliftment.difference ?? 0),
               'gp': PlutoCell(value: upliftment.gp ?? 0),
               'actions': PlutoCell(value: ''),
             },
@@ -454,9 +469,12 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
               'status': PlutoCell(value: upliftment.status ?? ''),
               'supplier_location':
               PlutoCell(value: upliftment.supplierLocation ?? ''),
-              'is_split': PlutoCell(value: upliftment.isSplit != null
-                  ? upliftment.isSplit! ? 'Yes' : 'No'
-                  : 'Unknown'),
+              'is_split': PlutoCell(
+                  value: upliftment.isSplit != null
+                      ? upliftment.isSplit!
+                      ? 'Yes'
+                      : 'No'
+                      : 'Unknown'),
               'supplier_name': PlutoCell(value: upliftment.supplierName ?? ''),
               'flight_date_time':
               PlutoCell(value: upliftment.flightDateTime ?? DateTime.now()),
@@ -472,6 +490,7 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
               PlutoCell(value: upliftment.salesPricePerLiter ?? 0),
               'purchase_price': PlutoCell(value: upliftment.purchasePrice ?? 0),
               'sale_price': PlutoCell(value: upliftment.salePrice ?? 0),
+              'difference': PlutoCell(value: upliftment.difference ?? 0),
               'gp': PlutoCell(value: upliftment.gp ?? 0),
               'actions': PlutoCell(value: ''),
             },
@@ -517,8 +536,6 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
                     _fetchFilteredUpliftments(
                         filters); // Fetch data with filters
                   });
-
-
                 },
                 configuration: const PlutoGridConfiguration(
                   columnSize: PlutoGridColumnSizeConfig(
@@ -542,8 +559,9 @@ class _UpliftmentTableState extends State<UpliftmentTable> {
         children: [
           IconButton(
             icon: Icon(Icons.chevron_left),
-            onPressed:
-            _currentPage > 1 ? () => _onPageChanged(_currentPage - 1) : null,
+            onPressed: _currentPage > 1
+                ? () => _onPageChanged(_currentPage - 1)
+                : null,
           ),
           Text('Page $_currentPage of $totalPages'),
           IconButton(

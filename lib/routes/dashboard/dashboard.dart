@@ -1,5 +1,7 @@
 import 'package:b4i_frontend/routes/crud/flights_table.dart';
+import 'package:b4i_frontend/routes/crud/ifs_table.dart';
 import 'package:b4i_frontend/routes/crud/master_file_table.dart';
+import 'package:b4i_frontend/routes/crud/suppliers_table.dart';
 import 'package:b4i_frontend/routes/crud/transactions_table.dart';
 import 'package:flutter/material.dart';
 import 'package:b4i_frontend/routes/crud/airports_table.dart';
@@ -7,6 +9,8 @@ import 'dart:html' as html;
 import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../data/general_table.dart';
 
 class DashboardPage extends StatefulWidget {
   @override
@@ -16,8 +20,29 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   int _currentIndex = 0;
   final List<Widget> _pages = [
-    FlightsTable(width: 1000, height: 1000),
-    Center(child: MaterialButton(onPressed: () => exportTableToCsv('airports') ,child: Text('Settings Page'))),
+    const SupabasePlutoGrid(
+      tableName: 'Parts',
+      columnFields:
+          'id,name,price,preset_id,PartPresets.name',
+      columnTitles: 'ID,Part Name,Price,Preset ID,Preset Name',
+      columnTypes: 'number,text,number,number,text',
+      joinFields: {
+        'PartPresets': 'preset_id',
+        // Define the join relation: Parts.preset_id = PartPresets.id
+      },
+      width: 800,
+      height: 600,
+      enableSearch: true,
+      enableColumnFiltering: true,
+      enableSorting: true,
+      rowsPerPage: 10,
+      borderRadius: 8,
+      showExport: true,
+    ),
+    Center(
+        child: MaterialButton(
+            onPressed: () => exportTableToCsv('airports'),
+            child: Text('Settings Page'))),
   ];
 
   @override
@@ -39,8 +64,7 @@ class _DashboardPageState extends State<DashboardPage> {
 }
 
 Future<void> exportTableToCsv(String tableName) async {
-  final response =
-      await Supabase.instance.client.from(tableName).select();
+  final response = await Supabase.instance.client.from(tableName).select();
 
   if (response == null) {
     print('Error fetching data: ');

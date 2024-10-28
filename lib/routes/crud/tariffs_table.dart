@@ -141,37 +141,51 @@ class _TariffsTableState extends State<TariffsTable> {
       PlutoColumn(
         title: 'Tariff Base Price',
         field: 'tariff_base_price',
-        type: PlutoColumnType.number(),
+        type: PlutoColumnType.number(
+          format: '#,###.#####',
+        ),
       ),
       PlutoColumn(
         title: 'Tariff Markup',
         field: 'tariff_markup',
-        type: PlutoColumnType.number(),
+        type: PlutoColumnType.number(
+          format: '#,###.#####',
+        ),
       ),
       PlutoColumn(
         title: 'Tariff Differential',
         field: 'tariff_differential',
-        type: PlutoColumnType.number(),
+        type: PlutoColumnType.number(
+          format: '#,###.#####',
+        ),
       ),
       PlutoColumn(
         title: 'Tariff Throughput',
         field: 'tariff_throughput',
-        type: PlutoColumnType.number(),
+        type: PlutoColumnType.number(
+          format: '#,###.#####',
+        ),
       ),
       PlutoColumn(
         title: 'Tariff Hookup Fee',
         field: 'tariff_hookup_fee',
-        type: PlutoColumnType.number(),
+        type: PlutoColumnType.number(
+          format: '#,###.#####',
+        ),
       ),
       PlutoColumn(
         title: 'Tariff Import Premium',
         field: 'tariff_import_premium',
-        type: PlutoColumnType.number(),
+        type: PlutoColumnType.number(
+          format: '#,###.#####',
+        ),
       ),
       PlutoColumn(
         title: 'Tariff Transport Cost',
         field: 'tariff_transport_cost',
-        type: PlutoColumnType.number(),
+        type: PlutoColumnType.number(
+          format: '#,###.#####',
+        ),
       ),
       PlutoColumn(
         title: 'Actions',

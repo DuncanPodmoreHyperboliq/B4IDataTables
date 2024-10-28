@@ -1,9 +1,10 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:pluto_grid_plus/pluto_grid_plus.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class SupabaseConfig {
+  static SupabaseClient get client => Supabase.instance.client;
+}
 
 class Flight {
   final String originCode;
@@ -48,73 +49,72 @@ class Flight {
 
   factory Flight.fromJson(Map<String, dynamic> json) {
     return Flight(
-      originCode: json['originCode'] ?? '',
-      destinationCode: json['destinationCode'] ?? '',
-      flightNumber: json['flightNumber'] ?? '',
-      departureStatus: json['departureStatus'] ?? '',
+      originCode: json['origin_code'] ?? '',
+      destinationCode: json['destination_code'] ?? '',
+      flightNumber: json['flight_number'] ?? '',
+      departureStatus: json['departure_status'] ?? '',
       status: json['status'] ?? '',
-      arrivalStatus: json['arrivalStatus'] ?? '',
-      estimatedDeparture: json['estimatedDeparture'] ?? '',
-      actualDeparture: json['actualDeparture'] ?? '',
-      estimatedArrival: json['estimatedArrival'] ?? '',
-      actualArrival: json['actualArrival'] ?? '',
-      scheduledDeparture: json['scheduledDeparture'] ?? '',
-      scheduledArrival: json['scheduledArrival'] ?? '',
-      currentDepartureDisplayText: json['currentDepartureDisplayText'] ?? '',
-      currentArrivalDisplayText: json['currentArrivalDisplayText'] ?? '',
-      currentDeparture: DateTime.parse(json['currentDeparture'] ?? DateTime.now().toIso8601String()),
-      currentArrival: DateTime.parse(json['currentArrival'] ?? DateTime.now().toIso8601String()),
-      departureGate: json['departureGate'],
-      baggageReclaimId: json['baggageReclaimId'],
+      arrivalStatus: json['arrival_status'] ?? '',
+      estimatedDeparture: json['estimated_departure'] ?? '',
+      actualDeparture: json['actual_departure'] ?? '',
+      estimatedArrival: json['estimated_arrival'] ?? '',
+      actualArrival: json['actual_arrival'] ?? '',
+      scheduledDeparture: json['scheduled_departure'] ?? '',
+      scheduledArrival: json['scheduled_arrival'] ?? '',
+      currentDepartureDisplayText: json['current_departure_display_text'] ?? '',
+      currentArrivalDisplayText: json['current_arrival_display_text'] ?? '',
+      currentDeparture: DateTime.parse(json['current_departure'] ?? DateTime.now().toIso8601String()),
+      currentArrival: DateTime.parse(json['current_arrival'] ?? DateTime.now().toIso8601String()),
+      departureGate: json['departure_gate'],
+      baggageReclaimId: json['baggage_reclaim_id'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'originCode': originCode,
-      'destinationCode': destinationCode,
-      'flightNumber': flightNumber,
-      'departureStatus': departureStatus,
+      'origin_code': originCode,
+      'destination_code': destinationCode,
+      'flight_number': flightNumber,
+      'departure_status': departureStatus,
       'status': status,
-      'arrivalStatus': arrivalStatus,
-      'estimatedDeparture': estimatedDeparture,
-      'actualDeparture': actualDeparture,
-      'estimatedArrival': estimatedArrival,
-      'actualArrival': actualArrival,
-      'scheduledDeparture': scheduledDeparture,
-      'scheduledArrival': scheduledArrival,
-      'currentDepartureDisplayText': currentDepartureDisplayText,
-      'currentArrivalDisplayText': currentArrivalDisplayText,
-      'currentDeparture': currentDeparture.toIso8601String(),
-      'currentArrival': currentArrival.toIso8601String(),
-      'departureGate': departureGate,
-      'baggageReclaimId': baggageReclaimId,
+      'arrival_status': arrivalStatus,
+      'estimated_departure': estimatedDeparture,
+      'actual_departure': actualDeparture,
+      'estimated_arrival': estimatedArrival,
+      'actual_arrival': actualArrival,
+      'scheduled_departure': scheduledDeparture,
+      'scheduled_arrival': scheduledArrival,
+      'currentDeparture_display_text': currentDepartureDisplayText,
+      'current_arrival_display_text': currentArrivalDisplayText,
+      'current_departure': currentDeparture.toIso8601String(),
+      'current_arrival': currentArrival.toIso8601String(),
+      'departure_gate': departureGate,
+      'baggage_reclaim_id': baggageReclaimId,
     };
   }
 }
 
-class FlightsTable extends StatefulWidget {
+class FlightTable extends StatefulWidget {
   final double width;
   final double height;
 
-  const FlightsTable({
+  const FlightTable({
     Key? key,
     required this.width,
     required this.height,
   }) : super(key: key);
 
   @override
-  _FlightsTableState createState() => _FlightsTableState();
+  _FlightTableState createState() => _FlightTableState();
 }
 
-class _FlightsTableState extends State<FlightsTable> {
+class _FlightTableState extends State<FlightTable> {
   List<PlutoColumn> columns = [];
   List<PlutoRow> rows = [];
-  List<PlutoRow> filteredRows = [];
   late PlutoGridStateManager _stateManager;
 
   int _currentPage = 1;
-  final int _pageSize = 10;
+  final int _pageSize = 100;
   bool _loading = true;
   int _totalRecords = 0;
 
@@ -128,18 +128,18 @@ class _FlightsTableState extends State<FlightsTable> {
   void _initializeColumns() {
     columns = [
       PlutoColumn(
-        title: 'Flight Number',
-        field: 'flightNumber',
-        type: PlutoColumnType.text(),
-      ),
-      PlutoColumn(
-        title: 'Origin',
+        title: 'Origin Code',
         field: 'originCode',
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
-        title: 'Destination',
+        title: 'Destination Code',
         field: 'destinationCode',
+        type: PlutoColumnType.text(),
+      ),
+      PlutoColumn(
+        title: 'Flight Number',
+        field: 'flightNumber',
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
@@ -148,8 +148,33 @@ class _FlightsTableState extends State<FlightsTable> {
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
+        title: 'Status',
+        field: 'status',
+        type: PlutoColumnType.text(),
+      ),
+      PlutoColumn(
         title: 'Arrival Status',
         field: 'arrivalStatus',
+        type: PlutoColumnType.text(),
+      ),
+      PlutoColumn(
+        title: 'Estimated Departure',
+        field: 'estimatedDeparture',
+        type: PlutoColumnType.text(),
+      ),
+      PlutoColumn(
+        title: 'Actual Departure',
+        field: 'actualDeparture',
+        type: PlutoColumnType.text(),
+      ),
+      PlutoColumn(
+        title: 'Estimated Arrival',
+        field: 'estimatedArrival',
+        type: PlutoColumnType.text(),
+      ),
+      PlutoColumn(
+        title: 'Actual Arrival',
+        field: 'actualArrival',
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
@@ -163,24 +188,24 @@ class _FlightsTableState extends State<FlightsTable> {
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
-        title: 'Estimated Departure',
-        field: 'estimatedDeparture',
+        title: 'Current Departure Display Text',
+        field: 'currentDepartureDisplayText',
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
-        title: 'Estimated Arrival',
-        field: 'estimatedArrival',
+        title: 'Current Arrival Display Text',
+        field: 'currentArrivalDisplayText',
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
-        title: 'Actual Departure',
-        field: 'actualDeparture',
-        type: PlutoColumnType.text(),
+        title: 'Current Departure',
+        field: 'currentDeparture',
+        type: PlutoColumnType.date(),
       ),
       PlutoColumn(
-        title: 'Actual Arrival',
-        field: 'actualArrival',
-        type: PlutoColumnType.text(),
+        title: 'Current Arrival',
+        field: 'currentArrival',
+        type: PlutoColumnType.date(),
       ),
       PlutoColumn(
         title: 'Departure Gate',
@@ -188,7 +213,7 @@ class _FlightsTableState extends State<FlightsTable> {
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
-        title: 'Baggage Reclaim',
+        title: 'Baggage Reclaim ID',
         field: 'baggageReclaimId',
         type: PlutoColumnType.text(),
       ),
@@ -206,14 +231,37 @@ class _FlightsTableState extends State<FlightsTable> {
     }
   }
 
-  Future<void> fetchFlights() async {
+  Future<void> fetchFlights({Map<String, String>? filters}) async {
     try {
       setState(() => _loading = true);
 
-      final response = await http.get(Uri.parse('https://n8n.morne.me/webhook/flights/day'));
+      var query = SupabaseConfig.client.from('flights').select(
+        '*',
+        const FetchOptions(count: CountOption.exact),
+      );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+      // Apply filters dynamically
+      if (filters != null && filters.isNotEmpty) {
+        filters.forEach((field, value) {
+          query = query.ilike(field, '%$value%');
+        });
+      }
+
+      // Fetch data with pagination
+      final response = await query
+          .range(
+        (_currentPage - 1) * _pageSize,
+        (_currentPage * _pageSize) - 1,
+      )
+          .execute();
+
+      if (response == null) {
+        print('Error fetching flights: ');
+        return;
+      }
+
+      if (response.data != null && response.data.isNotEmpty) {
+        final List<dynamic> data = response.data;
 
         // Convert fetched data to PlutoRows
         final newRows = data.map<PlutoRow>((item) {
@@ -221,17 +269,24 @@ class _FlightsTableState extends State<FlightsTable> {
 
           return PlutoRow(
             cells: {
-              'flightNumber': PlutoCell(value: flight.flightNumber),
               'originCode': PlutoCell(value: flight.originCode),
               'destinationCode': PlutoCell(value: flight.destinationCode),
+              'flightNumber': PlutoCell(value: flight.flightNumber),
               'departureStatus': PlutoCell(value: flight.departureStatus),
+              'status': PlutoCell(value: flight.status),
               'arrivalStatus': PlutoCell(value: flight.arrivalStatus),
+              'estimatedDeparture': PlutoCell(value: flight.estimatedDeparture),
+              'actualDeparture': PlutoCell(value: flight.actualDeparture),
+              'estimatedArrival': PlutoCell(value: flight.estimatedArrival),
+              'actualArrival': PlutoCell(value: flight.actualArrival),
               'scheduledDeparture': PlutoCell(value: flight.scheduledDeparture),
               'scheduledArrival': PlutoCell(value: flight.scheduledArrival),
-              'estimatedDeparture': PlutoCell(value: flight.estimatedDeparture),
-              'estimatedArrival': PlutoCell(value: flight.estimatedArrival),
-              'actualDeparture': PlutoCell(value: flight.actualDeparture),
-              'actualArrival': PlutoCell(value: flight.actualArrival),
+              'currentDepartureDisplayText':
+              PlutoCell(value: flight.currentDepartureDisplayText),
+              'currentArrivalDisplayText':
+              PlutoCell(value: flight.currentArrivalDisplayText),
+              'currentDeparture': PlutoCell(value: flight.currentDeparture),
+              'currentArrival': PlutoCell(value: flight.currentArrival),
               'departureGate': PlutoCell(value: flight.departureGate ?? ''),
               'baggageReclaimId': PlutoCell(value: flight.baggageReclaimId ?? ''),
               'actions': PlutoCell(value: ''),
@@ -241,11 +296,14 @@ class _FlightsTableState extends State<FlightsTable> {
 
         setState(() {
           rows = newRows;
-          filteredRows = List<PlutoRow>.from(rows);
-          _totalRecords = rows.length;
+          _totalRecords = response.count ?? 0;
         });
       } else {
-        print('Failed to load flights data.');
+        print('No data found.');
+        setState(() {
+          rows = [];
+          _totalRecords = 0;
+        });
       }
     } catch (e) {
       print('Error fetching flights: $e');
@@ -254,66 +312,123 @@ class _FlightsTableState extends State<FlightsTable> {
     }
   }
 
-  void _applyFilters() {
-    final filters = _stateManager.filterRows;
-    if (filters.isEmpty) {
-      setState(() {
-        filteredRows = List<PlutoRow>.from(rows);
-        _totalRecords = filteredRows.length;
-        _currentPage = 1;
-      });
-      return;
+  // Helper function to extract active filters
+  Map<String, String> _extractFilters() {
+    final filters = <String, String>{};
+
+    for (final filterRow in _stateManager.filterRows) {
+      String? columnField = filterRow.cells['column']?.value;
+      String filterValue = filterRow.cells['value']?.value;
+
+      // If both field and value are valid, add to filters
+      if (columnField != null &&
+          columnField.isNotEmpty &&
+          filterValue.isNotEmpty) {
+        filters[columnField] = filterValue;
+      }
     }
 
-    setState(() {
-      filteredRows = rows.where((row) {
-        bool matches = true;
-        for (final filter in filters) {
-          final columnField = filter.cells['column']?.value?.field;
-          final filterType = filter.cells['filterType']?.value;
-          final filterValue = filter.cells['value']?.value;
-
-          final cellValue = row.cells[columnField]?.value?.toString() ?? '';
-
-          if (filterType is PlutoFilterTypeContains) {
-            matches &= cellValue.toLowerCase().contains(filterValue.toLowerCase());
-          } else if (filterType is PlutoFilterTypeEquals) {
-            matches &= cellValue.toLowerCase() == filterValue.toLowerCase();
-          }
-          // Implement other filter types as needed
-        }
-        return matches;
-      }).toList();
-      _totalRecords = filteredRows.length;
-      _currentPage = 1;
-    });
+    return filters;
   }
 
   void _onFilterChanged() {
-    _applyFilters();
+    final filters = _extractFilters();
+    fetchFlights(filters: filters); // Fetch data with applied filters
+  }
+
+  Future<void> _editFlight(String flightNumber) async {
+    print('Edit flight with Flight Number: $flightNumber');
+    // Implement edit functionality
+  }
+
+  Future<void> _deleteFlight(String flightNumber) async {
+    await SupabaseConfig.client
+        .from('flights')
+        .delete()
+        .eq('flightNumber', flightNumber);
+    fetchFlights();
   }
 
   void _onPageChanged(int newPage) {
     setState(() {
       _currentPage = newPage;
-      // Ensures that the new page rows are recalculated.
-      _getCurrentPageRows();
-    });  }
+      fetchFlights();
+    });
+  }
 
-  List<PlutoRow> _getCurrentPageRows() {
-    print(_currentPage);
-    final start = (_currentPage - 1) * _pageSize;
-    final end = start + _pageSize;
-    // print(filteredRows.sublist(
-    //   start,
-    //   end > filteredRows.length ? filteredRows.length : end,
-    // ).map((r) => r.cells['flightNumber']?.value));
+  // Fetch filtered data from Supabase
+  Future<void> _fetchFilteredFlights(Map<String, String> filters) async {
+    setState(() => _loading = true);
 
-    final newRows = filteredRows.sublist(
-      start,
-      end > filteredRows.length ? filteredRows.length : end,
-    );
-    return newRows;
+    try {
+      // Build the query with filters
+      var query = SupabaseConfig.client.from('flights').select('*');
+
+      // Apply filters dynamically
+      filters.forEach((field, value) {
+        query = query.ilike(field, '%$value%');
+      });
+
+      // Fetch data with pagination
+      final response = await query
+          .range(
+        (_currentPage - 1) * _pageSize,
+        (_currentPage * _pageSize) - 1,
+      )
+          .execute();
+
+      if (response == null) {
+        print('Error fetching flights: ');
+        return;
+      }
+
+      if (response.data != null && response.data.isNotEmpty) {
+        final List<dynamic> data = response.data;
+
+        // Convert fetched data to PlutoRows
+        final newRows = data.map<PlutoRow>((item) {
+          final flight = Flight.fromJson(item);
+
+          return PlutoRow(
+            cells: {
+              'originCode': PlutoCell(value: flight.originCode),
+              'destinationCode': PlutoCell(value: flight.destinationCode),
+              'flightNumber': PlutoCell(value: flight.flightNumber),
+              'departureStatus': PlutoCell(value: flight.departureStatus),
+              'status': PlutoCell(value: flight.status),
+              'arrivalStatus': PlutoCell(value: flight.arrivalStatus),
+              'estimatedDeparture': PlutoCell(value: flight.estimatedDeparture),
+              'actualDeparture': PlutoCell(value: flight.actualDeparture),
+              'estimatedArrival': PlutoCell(value: flight.estimatedArrival),
+              'actualArrival': PlutoCell(value: flight.actualArrival),
+              'scheduledDeparture': PlutoCell(value: flight.scheduledDeparture),
+              'scheduledArrival': PlutoCell(value: flight.scheduledArrival),
+              'currentDepartureDisplayText':
+              PlutoCell(value: flight.currentDepartureDisplayText),
+              'currentArrivalDisplayText':
+              PlutoCell(value: flight.currentArrivalDisplayText),
+              'currentDeparture': PlutoCell(value: flight.currentDeparture),
+              'currentArrival': PlutoCell(value: flight.currentArrival),
+              'departureGate': PlutoCell(value: flight.departureGate ?? ''),
+              'baggageReclaimId': PlutoCell(value: flight.baggageReclaimId ?? ''),
+              'actions': PlutoCell(value: ''),
+            },
+          );
+        }).toList();
+
+        setState(() {
+          _stateManager.refRows.clear();
+          _stateManager.removeAllRows();
+          _stateManager.refRows.addAll(newRows);
+        });
+      } else {
+        print('No data found.');
+      }
+    } catch (e) {
+      print('Error fetching flights: $e');
+    } finally {
+      setState(() => _loading = false);
+    }
   }
 
   @override
@@ -321,15 +436,6 @@ class _FlightsTableState extends State<FlightsTable> {
     int totalPages = (_totalRecords / _pageSize).ceil();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Flights Table'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: fetchFlights,
-          ),
-        ],
-      ),
       body: _loading
           ? Center(child: CircularProgressIndicator())
           : Column(
@@ -339,17 +445,15 @@ class _FlightsTableState extends State<FlightsTable> {
               padding: const EdgeInsets.all(8.0),
               child: PlutoGrid(
                 columns: columns,
-                rows: _getCurrentPageRows(),
+                rows: rows,
                 onLoaded: (PlutoGridOnLoadedEvent event) {
                   _stateManager = event.stateManager;
 
+
                   // Listen for filter changes and trigger a data fetch
-                  _stateManager.setFilter(
-                        (event) {
-                      _onFilterChanged();
-                      return true;
-                    },
-                  );
+                  _stateManager.addListener(() {
+                    _onFilterChanged();
+                  });
                 },
                 configuration: const PlutoGridConfiguration(
                   columnSize: PlutoGridColumnSizeConfig(
@@ -362,20 +466,13 @@ class _FlightsTableState extends State<FlightsTable> {
           _buildPaginationControls(totalPages),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
-        onPressed: () {
-          // Implement add new flight functionality if needed
-        },
-      ),
     );
   }
 
   Widget _buildPaginationControls(int totalPages) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: totalPages > 1
-          ? Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
@@ -391,8 +488,7 @@ class _FlightsTableState extends State<FlightsTable> {
                 : null,
           ),
         ],
-      )
-          : Container(),
+      ),
     );
   }
 }

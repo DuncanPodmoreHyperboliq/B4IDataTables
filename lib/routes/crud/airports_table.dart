@@ -334,8 +334,6 @@ class _AirportsTableState extends State<AirportsTable> {
                 rows: rows,
                 onLoaded: (PlutoGridOnLoadedEvent event) {
                   _stateManager = event.stateManager;
-                  print('null check');
-                  print(_stateManager == null);
 
                   // Listen for filter changes and trigger a data fetch
                   _stateManager.addListener(() {
