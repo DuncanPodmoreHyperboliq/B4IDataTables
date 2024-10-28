@@ -24,10 +24,10 @@ class _DashboardPageState extends State<DashboardPage> {
           'id,name,price,preset_id,PartPresets.name',
       columnTitles: 'ID,Part Name,Price,Preset ID,Preset Name',
       columnTypes: 'number,text,number,number,text',
-      joinFields: {
+      joinFieldsText: '''{
         'PartPresets': 'preset_id',
         // Define the join relation: Parts.preset_id = PartPresets.id
-      },
+      }''',
       width: 800,
       height: 600,
       enableSearch: true,
@@ -36,11 +36,11 @@ class _DashboardPageState extends State<DashboardPage> {
       rowsPerPage: 10,
       borderRadius: 8,
       showExport: true,
-      columnColors:  {
-        'price': Colors.green, // Highlight the 'price' column in green
-        'preset_id': Colors.blue, // Highlight the 'preset_id' column in blue
-        'PartPresets.name': Colors.orange, // Highlight the 'PartPresets.name' column in orange
-      },
+      columnColorsText:  '''{
+        "price": "#00ff00", 
+        "preset_id": "#0000FF", 
+        "PartPresets.name": "#FFA500"
+      }''',
     ),
     Center(
         child: MaterialButton(

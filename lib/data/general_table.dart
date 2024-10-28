@@ -1,4 +1,4 @@
-import 'package:b4i_frontend/data/export_to_csv.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:pluto_grid_plus/pluto_grid_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -11,7 +11,7 @@ class SupabasePlutoGrid extends StatefulWidget {
     required this.columnTitles,
     required this.columnTypes,
     required this.selectQuery,
-    this.joinFields,
+    this.joinFieldsText,
     this.width,
     this.height,
     this.enableSearch = true,
@@ -20,7 +20,7 @@ class SupabasePlutoGrid extends StatefulWidget {
     this.rowsPerPage = 20,
     this.borderRadius = 8,
     this.showExport = true,
-    this.columnColors, // New: Column colors
+    this.columnColorsText, // New: Column colors
   }) : super(key: key);
 
   final String tableName;
@@ -28,7 +28,10 @@ class SupabasePlutoGrid extends StatefulWidget {
   final String columnTitles;
   final String columnTypes;
   final String selectQuery;
-  final Map<String, String>? joinFields;
+  Map<String, String>? get joinFields {
+    return _parseJoinFields(joinFieldsText);
+  }
+  final String? joinFieldsText;
   final double? width;
   final double? height;
   final bool enableSearch;
@@ -37,7 +40,43 @@ class SupabasePlutoGrid extends StatefulWidget {
   final int rowsPerPage;
   final double borderRadius;
   final bool showExport;
-  final Map<String, Color>? columnColors; // New: Column colors
+  Map<String, Color>? get columnColors {
+    return _parseColumnColors(columnColorsText);
+  } // New: Column colors
+  final String? columnColorsText; // New: Column colors
+
+  // Helper to parse joinFields string
+  Map<String, String> _parseJoinFields(String? joinFields) {
+    if (joinFields == null || joinFields.isEmpty) return {};
+    try {
+      final decoded = json.decode(joinFields) as Map<String, dynamic>;
+      return decoded.map((key, value) => MapEntry(key, value.toString()));
+    } catch (e) {
+      debugPrint('Error parsing joinFields: $e');
+      return {};
+    }
+  }
+
+  // Helper to parse columnColors string
+  Map<String, Color> _parseColumnColors(String? columnColors) {
+    if (columnColors == null || columnColors.isEmpty) return {};
+    try {
+      final decoded = json.decode(columnColors) as Map<String, dynamic>;
+      return decoded.map((key, value) {
+        return MapEntry(key, _hexToColor(value.toString()));
+      });
+    } catch (e) {
+      debugPrint('Error parsing columnColors: $e');
+      return {};
+    }
+  }
+
+  // Helper to convert hex string to Color
+  Color _hexToColor(String hex) {
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex'; // Add alpha if not present
+    return Color(int.parse(hex, radix: 16));
+  }
 
   @override
   State<SupabasePlutoGrid> createState() => _SupabasePlutoGridState();
@@ -58,7 +97,6 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
     super.initState();
     _initializeColumns();
     _initializeFieldTypeMap();
-
   }
 
   void _initializeFieldTypeMap() {
@@ -106,7 +144,8 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
 
       // Check if the current column has a specified color
       final field = fields[index].trim();
-      final color = widget.columnColors != null ? widget.columnColors![field] : null;
+      final color =
+          widget.columnColors != null ? widget.columnColors![field] : null;
 
       return PlutoColumn(
         title: titles[index].trim(),
@@ -121,17 +160,18 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
         // Apply a custom renderer if a color is specified
         renderer: color != null
             ? (rendererContext) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            color: color.withOpacity(0.2), // Light background color
-            child: Text(
-              rendererContext.cell.value?.toString() ?? '',
-              style: TextStyle(
-                color: color, // Text color matching the highlight
-              ),
-            ),
-          );
-        }
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  color: color.withOpacity(0.2), // Light background color
+                  child: Text(
+                    rendererContext.cell.value?.toString() ?? '',
+                    style: TextStyle(
+                      color: color, // Text color matching the highlight
+                    ),
+                  ),
+                );
+              }
             : null,
         // Set header text style if color is specified
         // titleTextStyle: color != null
@@ -149,12 +189,13 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
   }
 
   Future<PlutoLazyPaginationResponse> _fetch(
-      PlutoLazyPaginationRequest request,
-      ) async {
+    PlutoLazyPaginationRequest request,
+  ) async {
     try {
       final supabase = Supabase.instance.client;
 
-      final fields = widget.columnFields.split(',').map((e) => e.trim()).toList();
+      final fields =
+          widget.columnFields.split(',').map((e) => e.trim()).toList();
 
       // Get the total count of rows
       final countResult = await supabase
@@ -166,7 +207,8 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
       _totalRows = countResult.count ?? 0;
 
       // Build the query
-      final queryBuilder = supabase.from(widget.tableName).select(widget.selectQuery);
+      final queryBuilder =
+          supabase.from(widget.tableName).select(widget.selectQuery);
 
       // Apply filters if enabled
       if (widget.enableSearch && request.filterRows.isNotEmpty) {
@@ -190,22 +232,25 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
                   case 'Equals':
                     queryBuilder.eq(field, filterValue);
                     break;
-                // Add more text-based filters if needed
+                  // Add more text-based filters if needed
                 }
                 break;
 
               case 'number':
                 switch (filterType.key) {
                   case 'Equals':
-                    queryBuilder.eq(field, num.tryParse(filterValue) ?? filterValue);
+                    queryBuilder.eq(
+                        field, num.tryParse(filterValue) ?? filterValue);
                     break;
                   case 'Greater than':
-                    queryBuilder.gt(field, num.tryParse(filterValue) ?? filterValue);
+                    queryBuilder.gt(
+                        field, num.tryParse(filterValue) ?? filterValue);
                     break;
                   case 'Less than':
-                    queryBuilder.lt(field, num.tryParse(filterValue) ?? filterValue);
+                    queryBuilder.lt(
+                        field, num.tryParse(filterValue) ?? filterValue);
                     break;
-                // Add more numeric-based filters if needed
+                  // Add more numeric-based filters if needed
                 }
                 break;
 
@@ -220,11 +265,11 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
                   case 'After':
                     queryBuilder.gte(field, filterValue);
                     break;
-                // Add more date-based filters if needed
+                  // Add more date-based filters if needed
                 }
                 break;
 
-            // Handle other types as necessary
+              // Handle other types as necessary
             }
           }
         }
@@ -268,9 +313,11 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
                 if (value is int || value is double || value is String) {
                   return MapEntry(field, PlutoCell(value: value));
                 } else if (value is DateTime) {
-                  return MapEntry(field, PlutoCell(value: value.toIso8601String()));
+                  return MapEntry(
+                      field, PlutoCell(value: value.toIso8601String()));
                 } else {
-                  return MapEntry(field, PlutoCell(value: value?.toString() ?? ''));
+                  return MapEntry(
+                      field, PlutoCell(value: value?.toString() ?? ''));
                 }
               } catch (e) {
                 print('Error processing field "$field": $e');
@@ -294,7 +341,6 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     if (_errorMessage.isNotEmpty) {
@@ -316,13 +362,13 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton.icon(
-                    onPressed: _isExporting ? null : () => exportTableToCsv(''),
+                    onPressed: _isExporting ? null : () => {},
                     icon: _isExporting
                         ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.download),
                     label: Text(_isExporting ? 'Exporting...' : 'Export CSV'),
                   ),
