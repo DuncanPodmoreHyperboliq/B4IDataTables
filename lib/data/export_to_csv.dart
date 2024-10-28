@@ -1,8 +1,7 @@
 
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:html' as html;
 import 'dart:convert';
-
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Set your action name, define your arguments and return parameter,
 // and then add the boilerplate code using the green button on the right!
