@@ -4,52 +4,6 @@ import 'package:pluto_grid_plus/pluto_grid_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:html' as html;
 
-Future<void> exportTableToCsv(String tableName) async {
-  final response = await Supabase.instance.client.from(tableName).select();
-
-  if (response == null) {
-    print('Error fetching data: ');
-    return;
-  }
-
-  final data = response as List<dynamic>;
-
-  if (data.isEmpty) {
-    print('No data found');
-    return;
-  }
-
-  // Get the column names from the first item
-  final columnNames = (data[0] as Map<String, dynamic>).keys.toList();
-
-  // Build the CSV string
-  String csv = '';
-  csv += columnNames.join(',') + '\n';
-
-  for (var item in data) {
-    final row = columnNames.map((col) {
-      final value = item[col];
-      if (value != null) {
-        final escaped = value.toString().replaceAll('"', '""');
-        return '"$escaped"';
-      } else {
-        return '';
-      }
-    }).join(',');
-    csv += row + '\n';
-  }
-
-  // Trigger download in the browser
-  final bytes = utf8.encode(csv);
-  final blob = html.Blob([bytes], 'text/csv;charset=utf-8');
-
-  final url = html.Url.createObjectUrlFromBlob(blob);
-  final anchor = html.AnchorElement(href: url)
-    ..setAttribute('download', 'data.csv')
-    ..click();
-  html.Url.revokeObjectUrl(url);
-}
-
 class SupabasePlutoGrid extends StatefulWidget {
   const SupabasePlutoGrid({
     Key? key,
@@ -78,6 +32,7 @@ class SupabasePlutoGrid extends StatefulWidget {
   Map<String, String>? get joinFields {
     return _parseJoinFields(joinFieldsText);
   }
+
   final String? joinFieldsText;
   final double? width;
   final double? height;
@@ -192,7 +147,7 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
       // Check if the current column has a specified color
       final field = fields[index].trim();
       final color =
-          widget.columnColors != null ? widget.columnColors![field] : null;
+      widget.columnColors != null ? widget.columnColors![field] : null;
 
       return PlutoColumn(
         title: titles[index].trim(),
@@ -207,18 +162,18 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
         // Apply a custom renderer if a color is specified
         renderer: color != null
             ? (rendererContext) {
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  color: color.withOpacity(0.2), // Light background color
-                  child: Text(
-                    rendererContext.cell.value?.toString() ?? '',
-                    style: TextStyle(
-                      color: color, // Text color matching the highlight
-                    ),
-                  ),
-                );
-              }
+          return Container(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            color: color.withOpacity(0.2), // Light background color
+            child: Text(
+              rendererContext.cell.value?.toString() ?? '',
+              style: TextStyle(
+                color: color, // Text color matching the highlight
+              ),
+            ),
+          );
+        }
             : null,
         // Set header text style if color is specified
         // titleTextStyle: color != null
@@ -236,13 +191,13 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
   }
 
   Future<PlutoLazyPaginationResponse> _fetch(
-    PlutoLazyPaginationRequest request,
-  ) async {
+      PlutoLazyPaginationRequest request,
+      ) async {
     try {
       final supabase = Supabase.instance.client;
 
       final fields =
-          widget.columnFields.split(',').map((e) => e.trim()).toList();
+      widget.columnFields.split(',').map((e) => e.trim()).toList();
 
       // Get the total count of rows
       final countResult = await supabase
@@ -255,7 +210,7 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
 
       // Build the query
       final queryBuilder =
-          supabase.from(widget.tableName).select(widget.selectQuery);
+      supabase.from(widget.tableName).select(widget.selectQuery);
 
       // Apply filters if enabled
       if (widget.enableSearch && request.filterRows.isNotEmpty) {
@@ -279,7 +234,7 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
                   case 'Equals':
                     queryBuilder.eq(field, filterValue);
                     break;
-                  // Add more text-based filters if needed
+                // Add more text-based filters if needed
                 }
                 break;
 
@@ -297,7 +252,7 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
                     queryBuilder.lt(
                         field, num.tryParse(filterValue) ?? filterValue);
                     break;
-                  // Add more numeric-based filters if needed
+                // Add more numeric-based filters if needed
                 }
                 break;
 
@@ -312,11 +267,11 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
                   case 'After':
                     queryBuilder.gte(field, filterValue);
                     break;
-                  // Add more date-based filters if needed
+                // Add more date-based filters if needed
                 }
                 break;
 
-              // Handle other types as necessary
+            // Handle other types as necessary
             }
           }
         }
@@ -388,6 +343,145 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
     }
   }
 
+  // New: Export currently filtered data to CSV
+  Future<void> _exportFilteredTableToCsv() async {
+    setState(() {
+      _isExporting = true;
+    });
+
+    try {
+      final supabase = Supabase.instance.client;
+
+      // Build the query similar to _fetch but without pagination
+      final queryBuilder =
+      supabase.from(widget.tableName).select(widget.selectQuery);
+
+      // Apply current filters from the state manager
+      if (widget.enableSearch && _stateManager.filterRows.isNotEmpty) {
+        final filterMap =
+        FilterHelper.convertRowsToMap(_stateManager.filterRows);
+        for (var entry in filterMap.entries) {
+          final field = entry.key;
+          final type = _fieldTypeMap[field];
+
+          for (var filter in entry.value) {
+            final filterType = filter.entries.first;
+            final filterValue = filterType.value;
+
+            if (type == null) continue; // Skip if type is unknown
+
+            switch (type) {
+              case 'text':
+                switch (filterType.key) {
+                  case 'Contains':
+                    queryBuilder.ilike(field, '%$filterValue%');
+                    break;
+                  case 'Equals':
+                    queryBuilder.eq(field, filterValue);
+                    break;
+                // Add more text-based filters if needed
+                }
+                break;
+
+              case 'number':
+                switch (filterType.key) {
+                  case 'Equals':
+                    queryBuilder.eq(
+                        field, num.tryParse(filterValue) ?? filterValue);
+                    break;
+                  case 'Greater than':
+                    queryBuilder.gt(
+                        field, num.tryParse(filterValue) ?? filterValue);
+                    break;
+                  case 'Less than':
+                    queryBuilder.lt(
+                        field, num.tryParse(filterValue) ?? filterValue);
+                    break;
+                // Add more numeric-based filters if needed
+                }
+                break;
+
+              case 'date':
+                switch (filterType.key) {
+                  case 'Equals':
+                    queryBuilder.eq(field, filterValue);
+                    break;
+                  case 'Before':
+                    queryBuilder.lte(field, filterValue);
+                    break;
+                  case 'After':
+                    queryBuilder.gte(field, filterValue);
+                    break;
+                // Add more date-based filters if needed
+                }
+                break;
+
+            // Handle other types as necessary
+            }
+          }
+        }
+      }
+
+
+      // Execute query without pagination to get all filtered data
+      final response = await queryBuilder.execute();
+      final data = response.data as List<dynamic>;
+
+      if (data.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No data found to export.')),
+        );
+        setState(() {
+          _isExporting = false;
+        });
+        return;
+      }
+
+      // Get the column names from the widget's column fields
+      final fields = widget.columnFields.split(',').map((e) => e.trim()).toList();
+      final columnNames = fields;
+
+      // Build the CSV string
+      String csv = '';
+      csv += columnNames.join(',') + '\n';
+
+      for (var item in data) {
+        final row = columnNames.map((col) {
+          final value = item[col];
+          if (value != null) {
+            final escaped = value.toString().replaceAll('"', '""');
+            return '"$escaped"';
+          } else {
+            return '';
+          }
+        }).join(',');
+        csv += row + '\n';
+      }
+
+      // Trigger download in the browser
+      final bytes = utf8.encode(csv);
+      final blob = html.Blob([bytes], 'text/csv;charset=utf-8');
+
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'filtered_data.csv')
+        ..click();
+      html.Url.revokeObjectUrl(url);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Export successful!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error exporting data: $e')),
+      );
+    } finally {
+      setState(() {
+        _isExporting = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_errorMessage.isNotEmpty) {
@@ -409,15 +503,17 @@ class _SupabasePlutoGridState extends State<SupabasePlutoGrid> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton.icon(
-                    onPressed: _isExporting ? null : () => exportTableToCsv(widget.tableName),
+                    onPressed:
+                    _isExporting ? null : () => _exportFilteredTableToCsv(),
                     icon: _isExporting
                         ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                         : const Icon(Icons.download),
-                    label: Text(_isExporting ? 'Exporting...' : 'Export CSV'),
+                    label:
+                    Text(_isExporting ? 'Exporting...' : 'Export CSV'),
                   ),
                 ],
               ),
